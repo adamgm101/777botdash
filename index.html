@@ -1646,47 +1646,63 @@
                         let botInGuild = false;
                         let memberCount = guild.approximate_member_count || 0;
                         
+                        // Check if bot is in the guild using a simplified approach
+                        // Since we can't directly check bot presence from client-side,
+                        // we'll use a heuristic approach based on available data
                         try {
-                            const botResponse = await fetch(`${DISCORD_CONFIG.apiBase}/guilds/${guild.id}`, {
+                            // Get guild details with member count
+                            const guildDetailsResponse = await fetch(`${DISCORD_CONFIG.apiBase}/guilds/${guild.id}?with_counts=true`, {
                                 headers: {
-                                    'Authorization': `Bot ${DISCORD_CONFIG.clientSecret}`
+                                    'Authorization': `Bearer ${accessToken}`
                                 }
                             });
-                            botInGuild = botResponse.ok;
                             
-                            // If bot is in guild, try to get accurate member count
-                            if (botInGuild) {
-                                try {
-                                    const guildResponse = await fetch(`${DISCORD_CONFIG.apiBase}/guilds/${guild.id}?with_counts=true`, {
-                                        headers: {
-                                            'Authorization': `Bot ${DISCORD_CONFIG.clientSecret}`
+                            if (guildDetailsResponse.ok) {
+                                const guildDetails = await guildDetailsResponse.json();
+                                memberCount = guildDetails.approximate_member_count || memberCount;
+                                
+                                // Try to detect bot presence using multiple methods
+                                const userPermissions = BigInt(guild.permissions);
+                                const hasManageServer = (userPermissions & 0x20n) !== 0n;
+                                const hasAdministrator = (userPermissions & 0x8n) !== 0n;
+                                const isOwner = guild.owner;
+                                
+                                // Method 1: Check if user has permissions that suggest bot is in guild
+                                if (isOwner || hasAdministrator || hasManageServer) {
+                                    // Method 2: Try to access guild members endpoint to confirm
+                                    try {
+                                        const membersResponse = await fetch(`${DISCORD_CONFIG.apiBase}/guilds/${guild.id}/members?limit=1`, {
+                                            headers: {
+                                                'Authorization': `Bearer ${accessToken}`
+                                            }
+                                        });
+                                        
+                                        if (membersResponse.ok) {
+                                            botInGuild = true;
+                                            console.log(`✅ Bot detected in guild: ${guild.name} (Admin permissions + Members access)`);
+                                        } else {
+                                            // User has admin permissions but can't access members
+                                            // This might mean bot is not in guild
+                                            botInGuild = false;
+                                            console.log(`❌ Bot not detected in guild: ${guild.name} (Admin permissions but no members access)`);
                                         }
-                                    });
-                                    if (guildResponse.ok) {
-                                        const guildData = await guildResponse.json();
-                                        memberCount = guildData.approximate_member_count || memberCount;
+                                    } catch (error) {
+                                        // If we can't access members endpoint, assume bot is not in guild
+                                        botInGuild = false;
+                                        console.log(`❌ Cannot access members for guild: ${guild.name}`);
                                     }
-                                } catch (error) {
-                                    console.log(`Could not fetch detailed guild info for ${guild.name}:`, error.message);
+                                } else {
+                                    botInGuild = false;
+                                    console.log(`❌ Bot likely not in guild: ${guild.name} (User lacks admin permissions)`);
                                 }
                             } else {
-                                // If bot is not in guild, try to get member count using user token
-                                try {
-                                    const userGuildResponse = await fetch(`${DISCORD_CONFIG.apiBase}/users/@me/guilds/${guild.id}`, {
-                                        headers: {
-                                            'Authorization': `Bearer ${accessToken}`
-                                        }
-                                    });
-                                    if (userGuildResponse.ok) {
-                                        const userGuildData = await userGuildResponse.json();
-                                        memberCount = userGuildData.approximate_member_count || memberCount;
-                                    }
-                                } catch (error) {
-                                    console.log(`Could not fetch member count for ${guild.name}:`, error.message);
-                                }
+                                // If we can't get guild details, bot is definitely not in guild
+                                botInGuild = false;
+                                console.log(`❌ Cannot access guild: ${guild.name}`);
                             }
+                            
                         } catch (error) {
-                            console.log(`Bot not in guild ${guild.name} or error checking:`, error.message);
+                            console.log(`Error checking bot presence in guild ${guild.name}:`, error.message);
                             botInGuild = false;
                         }
                         
