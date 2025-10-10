@@ -1661,15 +1661,15 @@
                                 const guildDetails = await guildDetailsResponse.json();
                                 memberCount = guildDetails.approximate_member_count || memberCount;
                                 
-                                // Try to detect bot presence using multiple methods
+                                // Check if bot is actually in the guild by trying to access bot-specific features
                                 const userPermissions = BigInt(guild.permissions);
                                 const hasManageServer = (userPermissions & 0x20n) !== 0n;
                                 const hasAdministrator = (userPermissions & 0x8n) !== 0n;
                                 const isOwner = guild.owner;
                                 
-                                // Method 1: Check if user has permissions that suggest bot is in guild
+                                // Only proceed if user has admin permissions
                                 if (isOwner || hasAdministrator || hasManageServer) {
-                                    // Method 2: Try to access guild members endpoint to confirm
+                                    // Try to access guild members endpoint to check if bot is in guild
                                     try {
                                         const membersResponse = await fetch(`${DISCORD_CONFIG.apiBase}/guilds/${guild.id}/members?limit=1`, {
                                             headers: {
@@ -1677,23 +1677,58 @@
                                             }
                                         });
                                         
-                                        if (membersResponse.ok) {
-                                            botInGuild = true;
-                                            console.log(`✅ Bot detected in guild: ${guild.name} (Admin permissions + Members access)`);
+                                        // Also try to access guild roles to double-check
+                                        const rolesResponse = await fetch(`${DISCORD_CONFIG.apiBase}/guilds/${guild.id}/roles`, {
+                                            headers: {
+                                                'Authorization': `Bearer ${accessToken}`
+                                            }
+                                        });
+                                        
+                                        // Check if we can access bot-specific endpoints
+                                        // If we can access members or roles endpoint, bot is likely in guild
+                                        if (membersResponse.ok || rolesResponse.ok) {
+                                            // Try to get more detailed information to confirm bot presence
+                                            try {
+                                                // Check if we can get guild members with more details
+                                                const detailedMembersResponse = await fetch(`${DISCORD_CONFIG.apiBase}/guilds/${guild.id}/members?limit=5`, {
+                                                    headers: {
+                                                        'Authorization': `Bearer ${accessToken}`
+                                                    }
+                                                });
+                                                
+                                                if (detailedMembersResponse.ok) {
+                                                    const membersData = await detailedMembersResponse.json();
+                                                    
+                                                    // If we can get detailed members data, bot is likely in guild
+                                                    botInGuild = true;
+                                                    console.log(`✅ Bot is in guild: ${guild.name} (Can access detailed members data)`);
+                                                } else if (rolesResponse.ok) {
+                                                    // If we can access roles but not detailed members, still assume bot is in guild
+                                                    botInGuild = true;
+                                                    console.log(`✅ Bot is likely in guild: ${guild.name} (Can access roles)`);
+                                                } else {
+                                                    botInGuild = false;
+                                                    console.log(`❌ Bot is not in guild: ${guild.name} (Cannot access detailed members or roles)`);
+                                                }
+                                            } catch (error) {
+                                                // If we can't get detailed members, but basic access works, assume bot is in guild
+                                                botInGuild = true;
+                                                console.log(`✅ Bot is likely in guild: ${guild.name} (Basic access works)`);
+                                            }
                                         } else {
-                                            // User has admin permissions but can't access members
-                                            // This might mean bot is not in guild
+                                            // If we can't access members or roles endpoint, bot is probably not in guild
                                             botInGuild = false;
-                                            console.log(`❌ Bot not detected in guild: ${guild.name} (Admin permissions but no members access)`);
+                                            console.log(`❌ Bot is not in guild: ${guild.name} (Cannot access members or roles endpoints)`);
                                         }
                                     } catch (error) {
-                                        // If we can't access members endpoint, assume bot is not in guild
+                                        // If we get an error, assume bot is not in guild
                                         botInGuild = false;
-                                        console.log(`❌ Cannot access members for guild: ${guild.name}`);
+                                        console.log(`❌ Cannot check bot presence in guild: ${guild.name} - ${error.message}`);
                                     }
                                 } else {
+                                    // User doesn't have admin permissions, so we can't determine bot status
                                     botInGuild = false;
-                                    console.log(`❌ Bot likely not in guild: ${guild.name} (User lacks admin permissions)`);
+                                    console.log(`❌ Cannot check bot in guild: ${guild.name} (User lacks admin permissions)`);
                                 }
                             } else {
                                 // If we can't get guild details, bot is definitely not in guild
