@@ -1606,8 +1606,8 @@
             try {
                 showLoading('جاري تحميل الخوادم...');
                 
-                // Fetch guilds from Discord API
-                const response = await fetch(`${DISCORD_CONFIG.apiBase}/users/@me/guilds`, {
+                // Fetch guilds from Discord API with member counts
+                const response = await fetch(`${DISCORD_CONFIG.apiBase}/users/@me/guilds?with_counts=true`, {
                     headers: {
                         'Authorization': `Bearer ${accessToken}`
                     }
@@ -1642,8 +1642,10 @@
                 // Fetch additional guild details and features for admin guilds only
                 guilds = await Promise.all(adminGuilds.map(async (guild) => {
                     try {
-                        // Check if bot is in the guild
+                        // Check if bot is in the guild and get member count
                         let botInGuild = false;
+                        let memberCount = guild.approximate_member_count || 0;
+                        
                         try {
                             const botResponse = await fetch(`${DISCORD_CONFIG.apiBase}/guilds/${guild.id}`, {
                                 headers: {
@@ -1651,6 +1653,38 @@
                                 }
                             });
                             botInGuild = botResponse.ok;
+                            
+                            // If bot is in guild, try to get accurate member count
+                            if (botInGuild) {
+                                try {
+                                    const guildResponse = await fetch(`${DISCORD_CONFIG.apiBase}/guilds/${guild.id}?with_counts=true`, {
+                                        headers: {
+                                            'Authorization': `Bot ${DISCORD_CONFIG.clientSecret}`
+                                        }
+                                    });
+                                    if (guildResponse.ok) {
+                                        const guildData = await guildResponse.json();
+                                        memberCount = guildData.approximate_member_count || memberCount;
+                                    }
+                                } catch (error) {
+                                    console.log(`Could not fetch detailed guild info for ${guild.name}:`, error.message);
+                                }
+                            } else {
+                                // If bot is not in guild, try to get member count using user token
+                                try {
+                                    const userGuildResponse = await fetch(`${DISCORD_CONFIG.apiBase}/users/@me/guilds/${guild.id}`, {
+                                        headers: {
+                                            'Authorization': `Bearer ${accessToken}`
+                                        }
+                                    });
+                                    if (userGuildResponse.ok) {
+                                        const userGuildData = await userGuildResponse.json();
+                                        memberCount = userGuildData.approximate_member_count || memberCount;
+                                    }
+                                } catch (error) {
+                                    console.log(`Could not fetch member count for ${guild.name}:`, error.message);
+                                }
+                            }
                         } catch (error) {
                             console.log(`Bot not in guild ${guild.name} or error checking:`, error.message);
                             botInGuild = false;
@@ -1693,7 +1727,7 @@
                             id: guild.id,
                             name: guild.name,
                             icon: guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png` : null,
-                            memberCount: guild.approximate_member_count || 0,
+                            memberCount: memberCount,
                             permissions: guild.permissions,
                             permissionLevel: permissionLevel,
                             isOwner: isOwner,
@@ -1803,7 +1837,7 @@
                     <div class="guild-stats">
                         <div class="stat-item">
                             <i class="fas fa-users"></i>
-                            <span>${guild.memberCount.toLocaleString()} عضو</span>
+                            <span>${guild.memberCount > 0 ? guild.memberCount.toLocaleString() + ' عضو' : 'عدد غير محدد'}</span>
                         </div>
                     </div>
                     <div class="guild-actions">
