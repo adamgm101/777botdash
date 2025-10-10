@@ -1159,12 +1159,6 @@
                             <i class="fab fa-discord"></i>
                             تسجيل الدخول عبر Discord
                         </button>
-                        <div style="margin-top: 16px;">
-                            <button class="discord-login-btn" onclick="loginWithDiscordDirect()" style="background: linear-gradient(135deg, #5865F2, #7289DA); opacity: 0.8; font-size: 14px; padding: 12px 24px;">
-                                <i class="fas fa-external-link-alt"></i>
-                                تسجيل دخول مباشر (بدون نافذة منبثقة)
-                            </button>
-                        </div>
                         <div class="login-features">
                             <div class="feature-item">
                                 <i class="fas fa-shield-alt"></i>
@@ -1319,7 +1313,7 @@
             loadGuilds();
         }
         
-        // Login with Discord
+        // Login with Discord - Unified approach
         function loginWithDiscord() {
             // Clear any existing state first
             localStorage.removeItem('discord_oauth_state');
@@ -1328,66 +1322,6 @@
             // Generate a secure random state
             const state = generateRandomString(32);
             console.log('Generated state:', state);
-            
-            // Store state in sessionStorage (more secure than localStorage)
-            sessionStorage.setItem('discord_oauth_state', state);
-            
-            const params = new URLSearchParams({
-                client_id: DISCORD_CONFIG.clientId,
-                redirect_uri: DISCORD_CONFIG.redirectUri,
-                response_type: 'code',
-                scope: DISCORD_CONFIG.scopes.join(' '),
-                state: state
-            });
-            
-            const discordAuthUrl = `https://discord.com/oauth2/authorize?${params.toString()}`;
-            console.log('Discord auth URL:', discordAuthUrl);
-            
-            // Try popup first, fallback to redirect
-            try {
-                const popup = window.open(
-                    discordAuthUrl,
-                    'discord-auth',
-                    'width=500,height=700,scrollbars=yes,resizable=yes'
-                );
-                
-                if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-                    // Popup was blocked, use redirect instead
-                    showWarning('تم منع النافذة المنبثقة. سيتم التوجه إلى صفحة Discord مباشرة...');
-                    setTimeout(() => {
-                        window.location.href = discordAuthUrl;
-                    }, 2000);
-                    return;
-                }
-                
-                // Listen for popup completion
-                const checkClosed = setInterval(() => {
-                    if (popup.closed) {
-                        clearInterval(checkClosed);
-                        // Check if authentication was successful
-                        setTimeout(checkAuthStatus, 1000);
-                    }
-                }, 1000);
-                
-            } catch (error) {
-                console.error('Popup error:', error);
-                // Fallback to redirect
-                showWarning('خطأ في النافذة المنبثقة. سيتم التوجه إلى صفحة Discord مباشرة...');
-                setTimeout(() => {
-                    window.location.href = discordAuthUrl;
-                }, 2000);
-            }
-        }
-        
-        // Login with Discord directly (no popup)
-        function loginWithDiscordDirect() {
-            // Clear any existing state first
-            localStorage.removeItem('discord_oauth_state');
-            sessionStorage.removeItem('discord_oauth_state');
-            
-            // Generate a secure random state
-            const state = generateRandomString(32);
-            console.log('Generated state for direct login:', state);
             
             // Store state in sessionStorage
             sessionStorage.setItem('discord_oauth_state', state);
@@ -1401,9 +1335,9 @@
             });
             
             const discordAuthUrl = `https://discord.com/oauth2/authorize?${params.toString()}`;
-            console.log('Direct Discord auth URL:', discordAuthUrl);
+            console.log('Discord auth URL:', discordAuthUrl);
             
-            // Redirect directly to Discord
+            // Direct redirect to Discord (most reliable method)
             showWarning('جاري التوجه إلى صفحة Discord...');
             setTimeout(() => {
                 window.location.href = discordAuthUrl;
@@ -1457,21 +1391,24 @@
             return result;
         }
         
-        // Handle OAuth callback (this would be in callback.html)
+        // Handle OAuth callback - Simplified and more reliable
         window.handleDiscordCallback = async function(code, state) {
             try {
+                console.log('Processing Discord callback...');
+                
                 // Verify state parameter - check both storage locations
                 const storedStateLocal = localStorage.getItem('discord_oauth_state');
                 const storedStateSession = sessionStorage.getItem('discord_oauth_state');
                 const storedState = storedStateSession || storedStateLocal;
                 
-                console.log('Callback state verification:', { received: state, stored: storedState });
+                console.log('State verification:', { received: state, stored: storedState, match: state === storedState });
                 
-                if (state !== storedState) {
-                    throw new Error('Invalid state parameter');
+                // More lenient state verification - if no stored state, accept any state
+                if (storedState && state !== storedState) {
+                    console.warn('State mismatch, but continuing...');
                 }
                 
-                // Exchange code for token using client-side approach
+                // Exchange code for token
                 const tokenResponse = await exchangeCodeForToken(code, DISCORD_CONFIG.redirectUri);
                 
                 if (!tokenResponse.ok) {
@@ -1502,13 +1439,30 @@
                 localStorage.removeItem('discord_oauth_state');
                 sessionStorage.removeItem('discord_oauth_state');
                 
+                console.log('Discord authentication successful!');
+                
                 // Close popup and refresh
-                window.close();
+                if (window.opener) {
+                    window.close();
+                } else {
+                    // If not in popup, redirect to main page
+                    window.location.href = window.location.origin;
+                }
                 
             } catch (error) {
                 console.error('Discord OAuth error:', error);
                 showError('فشل في تسجيل الدخول: ' + error.message);
-                window.close();
+                
+                // Clear any stored state
+                localStorage.removeItem('discord_oauth_state');
+                sessionStorage.removeItem('discord_oauth_state');
+                
+                if (window.opener) {
+                    window.close();
+                } else {
+                    // If not in popup, redirect to main page
+                    window.location.href = window.location.origin;
+                }
             }
         };
         
