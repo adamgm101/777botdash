@@ -101,13 +101,12 @@
 
     <script>
         // Discord OAuth2 Configuration (should match main app)
-        const DISCORD_CONFIG = {
-            clientId: '1399499840475500574', // Replace with your Discord application client ID
-            clientSecret: 'AcUpnWHDgLrzbq9Une066YenwmsiiraQ', // Replace with your Discord application client secret
-            redirectUri: window.location.origin + '/callback.html',
-            scopes: ['identify', 'guilds'],
-            apiBase: 'https://discord.com/api/v10'
-        };
+                 const DISCORD_CONFIG = {
+                clientId: '1399499840475500574',
+                redirectUri: window.location.origin + '/callback.html', // مهم جدًا: .html
+                scopes: ['identify', 'guilds'],
+                apiBase: 'https://discord.com/api/v10'
+             };     
 
         // Parse URL parameters
         const urlParams = new URLSearchParams(window.location.search);
@@ -184,9 +183,9 @@
                 document.getElementById('success').style.display = 'block';
 
                 // Notify parent window
-                if (window.opener && window.opener.handleDiscordCallback) {
-                    window.opener.handleDiscordCallback(code, state);
-                }
+                if (window.opener && window.opener.handleDiscordCallback && code) {
+                        window.opener.handleDiscordCallback(code, state);
+                   }
 
                 // Close window after delay
                 setTimeout(() => {
