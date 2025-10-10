@@ -81,16 +81,26 @@
         <div id="error" class="error-state" style="display: none;">
             <h2>❌ فشل في المصادقة</h2>
             <p id="error-message">حدث خطأ أثناء تسجيل الدخول</p>
-            <button onclick="window.close()" style="
-                background: #ef4444;
-                color: white;
-                border: none;
-                padding: 12px 24px;
-                border-radius: 8px;
-                cursor: pointer;
-                font-size: 14px;
-                margin-top: 16px;
-            ">إغلاق النافذة</button>
+            <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px;">
+                <button onclick="window.close()" style="
+                    background: #6b7280;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 14px;
+                ">إغلاق النافذة</button>
+                <button onclick="retryAuth()" style="
+                    background: #3b82f6;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 14px;
+                ">إعادة المحاولة</button>
+            </div>
         </div>
         
         <div id="success" class="success-state" style="display: none;">
@@ -119,6 +129,8 @@
         // Handle OAuth callback
         async function handleCallback() {
             try {
+                console.log('Callback received:', { code: code ? 'present' : 'missing', state: state ? 'present' : 'missing', error });
+                
                 // Check for OAuth errors
                 if (error) {
                     throw new Error(errorDescription || error);
@@ -132,10 +144,16 @@
                     throw new Error('لم يتم الحصول على معامل الحالة');
                 }
 
-                // Verify state parameter
-                const storedState = localStorage.getItem('discord_oauth_state');
+                // Verify state parameter - check both localStorage and sessionStorage
+                const storedStateLocal = localStorage.getItem('discord_oauth_state');
+                const storedStateSession = sessionStorage.getItem('discord_oauth_state');
+                const storedState = storedStateSession || storedStateLocal;
+                
+                console.log('State comparison:', { received: state, stored: storedState, match: state === storedState });
+                
                 if (state !== storedState) {
-                    throw new Error('معامل الحالة غير صحيح');
+                    console.error('State mismatch:', { received: state, stored: storedState });
+                    throw new Error('معامل الحالة غير صحيح - يرجى المحاولة مرة أخرى');
                 }
 
                 // Exchange code for token
@@ -177,7 +195,10 @@
                 // Store data in localStorage
                 localStorage.setItem('discord_access_token', tokenData.access_token);
                 localStorage.setItem('discord_user_data', JSON.stringify(userData));
+                
+                // Clear state from both storage locations
                 localStorage.removeItem('discord_oauth_state');
+                sessionStorage.removeItem('discord_oauth_state');
 
                 // Show success and close window
                 document.getElementById('loading').style.display = 'none';
@@ -201,13 +222,31 @@
                 document.getElementById('error').style.display = 'block';
                 document.getElementById('error-message').textContent = error.message;
                 
-                // Clear any stored state
+                // Clear any stored state from both locations
                 localStorage.removeItem('discord_oauth_state');
+                sessionStorage.removeItem('discord_oauth_state');
             }
         }
 
         // Start processing when page loads
-        document.addEventListener('DOMContentLoaded', handleCallback);
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Callback page loaded');
+            console.log('URL params:', { code: code ? 'present' : 'missing', state: state ? 'present' : 'missing', error });
+            handleCallback();
+        });
+
+        // Retry authentication
+        function retryAuth() {
+            // Clear any stored state
+            localStorage.removeItem('discord_oauth_state');
+            sessionStorage.removeItem('discord_oauth_state');
+            
+            // Close current window and notify parent
+            if (window.opener) {
+                window.opener.postMessage({ type: 'DISCORD_AUTH_RETRY' }, '*');
+            }
+            window.close();
+        }
 
         // Handle window close
         window.addEventListener('beforeunload', () => {
