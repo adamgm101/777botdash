@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>777 Control Panel - لوحة التحكم</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #0a0d12;
+            --panel: #0f141b;
+            --border: #1b2433;
+            --text: #e6f1ff;
+            --subtext: #93a4bf;
+            --accent: #00e5ff;
+            --accent2: #8a2be2;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --glow: 0 0 24px rgba(0,229,255,0.35);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body { 
+            font-family: 'Cairo', system-ui, -apple-system, sans-serif; 
+            background: linear-gradient(135deg, #0a0d12 0%, #1a1f2e 100%);
+            color: var(--text); 
+            margin: 0;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        .background-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 25% 25%, rgba(0, 229, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(138, 43, 226, 0.1) 0%, transparent 50%);
+            z-index: -1;
+        }
+        
+        /* Header Styles */
+        header { 
+            padding: 24px 32px; 
+            background: rgba(15, 20, 27, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.3);
+        }
+        
+        h1 { 
+            margin: 0; 
+            font-size: 24px; 
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .user-info { 
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 14px; 
+            color: var(--subtext);
+        }
+        
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: white;
+        }
+        
+        .logout-btn {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        
+        .logout-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+        
+        /* Container Styles */
+        .container { 
+            padding: 32px; 
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .page-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .page-title {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--text), var(--subtext));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .page-subtitle {
+            font-size: 18px;
+            color: var(--subtext);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        /* Navigation Styles */
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 32px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .nav-tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: var(--subtext);
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .nav-tab.active {
+            color: var(--text);
+            background: rgba(15, 20, 27, 0.8);
+            border-bottom: 2px solid var(--accent);
+        }
+        
+        .nav-tab:hover {
+            color: var(--text);
+            background: rgba(15, 20, 27, 0.5);
+        }
+        
+        /* Content Panels */
+        .content-panel {
+            display: none;
+        }
+        
+        .content-panel.active {
+            display: block;
+        }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-card {
+            background: rgba(15, 20, 27, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 229, 255, 0.15);
+            border-color: var(--accent);
+        }
+        
+        .stat-icon {
+            font-size: 32px;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: var(--subtext);
+            font-weight: 500;
+        }
+        
+        /* Guilds Grid */
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
+            gap: 24px; 
+        }
+        
+        .guild-card { 
+            background: rgba(15, 20, 27, 0.9);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        
+        .guild-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .guild-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0, 229, 255, 0.2);
+            border-color: var(--accent);
+        }
+        
+        .guild-card:hover::before {
+            opacity: 1;
+        }
+        
+        .guild-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .guild-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            font-weight: 700;
+        }
+        
+        .guild-info h3 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+        
+        .guild-id {
+            font-size: 12px;
+            color: var(--subtext);
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+        
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+        
+        .feature-card {
+            background: rgba(15, 20, 27, 0.9);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 229, 255, 0.15);
+            border-color: var(--accent);
+        }
+        
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+        
+        .feature-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .feature-icon {
+            font-size: 24px;
+            color: var(--accent);
+            width: 40px;
+            text-align: center;
+        }
+        
+        .feature-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .feature-description {
+            font-size: 14px;
+            color: var(--subtext);
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .form-row-full {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        label { 
+            min-width: 140px;
+            display: inline-block; 
+            color: var(--text);
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        input[type="text"], 
+        input[type="number"], 
+        select, 
+        textarea { 
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(10, 20, 28, 0.8);
+            color: var(--text);
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        
+        input[type="text"]:focus, 
+        input[type="number"]:focus, 
+        select:focus, 
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.1);
+        }
+        
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+        }
+        
+        textarea { 
+            min-height: 120px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        .help-text {
+            font-size: 12px;
+            color: var(--subtext);
+            margin-top: 4px;
+            font-style: italic;
+        }
+        
+        /* Button Styles */
+        .actions { 
+            margin-top: 24px;
+            display: flex;
+            gap: 12px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            text-decoration: none;
+        }
+        
+        .save-btn { 
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+        }
+        
+        .save-btn:hover { 
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        
+        .reset-btn {
+            background: linear-gradient(135deg, var(--warning), #d97706);
+            color: white;
+        }
+        
+        .reset-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+        
+        .open-btn { 
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: white;
+            width: 100%;
+            text-align: center;
+            justify-content: center;
+        }
+        
+        .open-btn:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 229, 255, 0.3);
+        }
+        
+        /* Status Indicators */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-enabled {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .status-disabled {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 40px 32px;
+            color: var(--subtext);
+            font-size: 14px;
+            border-top: 1px solid var(--border);
+            margin-top: 60px;
+        }
+        
+        /* Loading States */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--subtext);
+        }
+        
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top: 2px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .modal-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--subtext);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        
+        .modal-close:hover {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .nav-tabs {
+                flex-wrap: wrap;
+            }
+            
+            .form-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            
+            label {
+                min-width: auto;
+            }
+            
+            header {
+                padding: 20px;
+                flex-direction: column;
+                gap: 16px;
+            }
+            
+            .page-title {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-pattern"></div>
+    
+    <header>
+        <div class="logo">
+            <div class="logo-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h1>777 Control Panel</h1>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <span id="user-display">المستخدم</span>
+            <button class="logout-btn" onclick="logout()">تسجيل الخروج</button>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">لوحة التحكم الرئيسية</h1>
+            <p class="page-subtitle">إدارة متقدمة لخوادم الديسكورد مع ميزات شاملة</p>
+        </div>
+        
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('dashboard')">
+                <i class="fas fa-tachometer-alt"></i> لوحة التحكم
+            </button>
+            <button class="nav-tab" onclick="showTab('guilds')">
+                <i class="fas fa-server"></i> الخوادم
+            </button>
+            <button class="nav-tab" onclick="showTab('settings')">
+                <i class="fas fa-cog"></i> الإعدادات
+            </button>
+        </div>
+        
+        <!-- Dashboard Tab -->
+        <div id="dashboard-panel" class="content-panel active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-server"></i>
+                    </div>
+                    <div class="stat-number" id="total-servers">0</div>
+                    <div class="stat-label">إجمالي الخوادم</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-number">نشط</div>
+                    <div class="stat-label">الإدارة</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="stat-number">محمي</div>
+                    <div class="stat-label">الأمان</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <div class="stat-number">متقدم</div>
+                    <div class="stat-label">الميزات</div>
+                </div>
+            </div>
+            
+            <div class="grid" id="guilds-grid">
+                <div class="loading">
+                    <span>جاري تحميل الخوادم...</span>
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Guilds Tab -->
+        <div id="guilds-panel" class="content-panel">
+            <div class="features-grid" id="guild-features">
+                <div class="loading">
+                    <span>جاري تحميل الإعدادات...</span>
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Settings Tab -->
+        <div id="settings-panel" class="content-panel">
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <div class="feature-icon">
+                            <i class="fas fa-user-cog"></i>
+                        </div>
+                        <h2 class="feature-title">إعدادات المستخدم</h2>
+                    </div>
+                    <p class="feature-description">
+                        إدارة معلومات المستخدم وتفضيلات النظام.
+                    </p>
+                    <div class="form-row">
+                        <label>اسم المستخدم</label>
+                        <input type="text" id="username" placeholder="اسم المستخدم">
+                    </div>
+                    <div class="form-row">
+                        <label>البريد الإلكتروني</label>
+                        <input type="text" id="email" placeholder="البريد الإلكتروني">
+                    </div>
+                    <div class="actions">
+                        <button class="save-btn" onclick="saveUserSettings()">
+                            <i class="fas fa-save"></i>
+                            حفظ الإعدادات
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <div class="feature-icon">
+                            <i class="fas fa-palette"></i>
+                        </div>
+                        <h2 class="feature-title">المظهر والثيم</h2>
+                    </div>
+                    <p class="feature-description">
+                        تخصيص مظهر لوحة التحكم والألوان.
+                    </p>
+                    <div class="form-row">
+                        <label>اللون الأساسي</label>
+                        <input type="color" id="primary-color" value="#00e5ff">
+                    </div>
+                    <div class="form-row">
+                        <label>اللون الثانوي</label>
+                        <input type="color" id="secondary-color" value="#8a2be2">
+                    </div>
+                    <div class="actions">
+                        <button class="save-btn" onclick="saveThemeSettings()">
+                            <i class="fas fa-palette"></i>
+                            تطبيق الثيم
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Guild Configuration Modal -->
+    <div id="guild-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-title">إعدادات الخادم</h2>
+                <button class="modal-close" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="modal-body">
+                <!-- Dynamic content will be loaded here -->
+            </div>
+        </div>
+    </div>
+    
+    <footer class="footer">
+        <p>&copy; 2024 777 Control Panel. إدارة متقدمة لخوادم الديسكورد.</p>
+    </footer>
+    
+    <script>
+        // Global variables
+        let currentUser = null;
+        let guilds = [];
+        let currentGuild = null;
+        
+        // Theme configuration
+        const themeConfig = {
+            bg: '#0a0d12',
+            panel: '#0f141b',
+            border: '#1b2433',
+            text: '#e6f1ff',
+            subtext: '#93a4bf',
+            accent: '#00e5ff',
+            accent2: '#8a2be2',
+            success: '#10b981',
+            warning: '#f59e0b',
+            danger: '#ef4444'
+        };
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDashboard();
+            loadGuilds();
+            setupEventListeners();
+        });
+        
+        // Initialize dashboard
+        function initializeDashboard() {
+            // Simulate user login (in real app, this would come from authentication)
+            currentUser = {
+                username: 'المستخدم',
+                discriminator: '1234',
+                avatar: null
+            };
+            
+            updateUserDisplay();
+        }
+        
+        // Update user display
+        function updateUserDisplay() {
+            const userDisplay = document.getElementById('user-display');
+            if (currentUser) {
+                userDisplay.textContent = `${currentUser.username}#${currentUser.discriminator}`;
+            }
+        }
+        
+        // Show tab
+        function showTab(tabName) {
+            // Hide all panels
+            document.querySelectorAll('.content-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected panel
+            document.getElementById(`${tabName}-panel`).classList.add('active');
+            
+            // Add active class to selected tab
+            event.target.classList.add('active');
+            
+            // Load data for specific tabs
+            if (tabName === 'guilds' && guilds.length === 0) {
+                loadGuildFeatures();
+            }
+        }
+        
+        // Load guilds
+        async function loadGuilds() {
+            try {
+                // Simulate API call
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Mock guilds data
+                guilds = [
+                    {
+                        id: '123456789',
+                        name: 'خادم التطوير',
+                        icon: null,
+                        memberCount: 150,
+                        features: {
+                            logs: { enabled: true, channel: 'logs' },
+                            security: { enabled: false, features: {} },
+                            autorole: { enabled: true, memberRole: 'Member' },
+                            autoresponses: { enabled: false, responses: [] },
+                            welcome: { enabled: true, channel: 'welcome', message: 'مرحباً {user} في {server}!' }
+                        }
+                    },
+                    {
+                        id: '987654321',
+                        name: 'خادم المجتمع',
+                        icon: null,
+                        memberCount: 300,
+                        features: {
+                            logs: { enabled: false, channel: null },
+                            security: { enabled: true, features: { spam: true, links: true } },
+                            autorole: { enabled: false, memberRole: null },
+                            autoresponses: { enabled: true, responses: [{ trigger: 'مرحبا', response: 'أهلاً وسهلاً!' }] },
+                            welcome: { enabled: false, channel: null, message: '' }
+                        }
+                    }
+                ];
+                
+                updateGuildsDisplay();
+                updateStats();
+                
+            } catch (error) {
+                console.error('Error loading guilds:', error);
+                showError('فشل في تحميل الخوادم');
+            }
+        }
+        
+        // Update guilds display
+        function updateGuildsDisplay() {
+            const grid = document.getElementById('guilds-grid');
+            
+            if (guilds.length === 0) {
+                grid.innerHTML = '<div class="loading"><span>لا توجد خوادم متاحة</span></div>';
+                return;
+            }
+            
+            grid.innerHTML = guilds.map(guild => `
+                <div class="guild-card" onclick="openGuildConfig('${guild.id}')">
+                    <div class="guild-header">
+                        <div class="guild-icon">
+                            <i class="fas fa-hashtag"></i>
+                        </div>
+                        <div class="guild-info">
+                            <h3>${guild.name}</h3>
+                            <div class="guild-id">ID: ${guild.id}</div>
+                        </div>
+                    </div>
+                    <div class="guild-actions">
+                        <button class="open-btn">
+                            <i class="fas fa-cog"></i> إدارة الخادم
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Update stats
+        function updateStats() {
+            document.getElementById('total-servers').textContent = guilds.length;
+        }
+        
+        // Load guild features
+        async function loadGuildFeatures() {
+            const container = document.getElementById('guild-features');
+            container.innerHTML = '<div class="loading"><span>جاري تحميل الإعدادات...</span><div class="spinner"></div></div>';
+            
+            try {
+                // Simulate API call
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                if (guilds.length === 0) {
+                    container.innerHTML = '<div class="loading"><span>لا توجد خوادم متاحة</span></div>';
+                    return;
+                }
+                
+                // Show first guild's features as example
+                const guild = guilds[0];
+                container.innerHTML = generateGuildFeaturesHTML(guild);
+                
+            } catch (error) {
+                console.error('Error loading guild features:', error);
+                container.innerHTML = '<div class="loading"><span>فشل في تحميل الإعدادات</span></div>';
+            }
+        }
+        
+        // Generate guild features HTML
+        function generateGuildFeaturesHTML(guild) {
+            return `
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <div class="feature-icon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <h2 class="feature-title">نظام السجلات</h2>
+                    </div>
+                    <p class="feature-description">
+                        تتبع ومراقبة أنشطة الخادم مع نظام السجلات الشامل.
+                    </p>
+                    <div class="form-row">
+                        <label>الحالة</label>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="logs-enabled" ${guild.features.logs.enabled ? 'checked' : ''} onchange="updateStatusIndicator(this)">
+                            <span class="status-indicator ${guild.features.logs.enabled ? 'status-enabled' : 'status-disabled'}">
+                                <i class="fas fa-${guild.features.logs.enabled ? 'check' : 'times'}"></i>
+                                ${guild.features.logs.enabled ? 'مفعل' : 'معطل'}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label>قناة السجلات</label>
+                        <select>
+                            <option value="">اختر قناة</option>
+                            <option value="logs" ${guild.features.logs.channel === 'logs' ? 'selected' : ''}>#logs</option>
+                            <option value="general" ${guild.features.logs.channel === 'general' ? 'selected' : ''}>#general</option>
+                        </select>
+                    </div>
+                    <div class="actions">
+                        <button class="save-btn" onclick="saveLogsSettings('${guild.id}')">
+                            <i class="fas fa-save"></i>
+                            حفظ السجلات
+                        </button>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <div class="feature-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h2 class="feature-title">الأمان والحماية</h2>
+                    </div>
+                    <p class="feature-description">
+                        حماية خادمك من السبام والغارات والمحتوى غير المرغوب فيه.
+                    </p>
+                    <div class="form-row">
+                        <label>الحالة</label>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="security-enabled" ${guild.features.security.enabled ? 'checked' : ''} onchange="updateStatusIndicator(this)">
+                            <span class="status-indicator ${guild.features.security.enabled ? 'status-enabled' : 'status-disabled'}">
+                                <i class="fas fa-${guild.features.security.enabled ? 'check' : 'times'}"></i>
+                                ${guild.features.security.enabled ? 'مفعل' : 'معطل'}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label>ميزات الحماية</label>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div class="checkbox-group">
+                                <input type="checkbox" ${guild.features.security.features.links ? 'checked' : ''}>
+                                <span>حماية الروابط</span>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" ${guild.features.security.features.spam ? 'checked' : ''}>
+                                <span>حماية السبام</span>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox">
+                                <span>حماية الإشارات</span>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox">
+                                <span>حماية الأحرف الكبيرة</span>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox">
+                                <span>حماية الإيموجي</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <button class="save-btn" onclick="saveSecuritySettings('${guild.id}')">
+                            <i class="fas fa-save"></i>
+                            حفظ الأمان
+                        </button>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <div class="feature-icon">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <h2 class="feature-title">إسناد الأدوار التلقائي</h2>
+                    </div>
+                    <p class="feature-description">
+                        إسناد الأدوار تلقائياً للأعضاء الجدد والبوتات عند انضمامهم.
+                    </p>
+                    <div class="form-row">
+                        <label>الحالة</label>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="autorole-enabled" ${guild.features.autorole.enabled ? 'checked' : ''} onchange="updateStatusIndicator(this)">
+                            <span class="status-indicator ${guild.features.autorole.enabled ? 'status-enabled' : 'status-disabled'}">
+                                <i class="fas fa-${guild.features.autorole.enabled ? 'check' : 'times'}"></i>
+                                ${guild.features.autorole.enabled ? 'مفعل' : 'معطل'}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label>دور العضو</label>
+                        <select>
+                            <option value="">اختر دور</option>
+                            <option value="Member" ${guild.features.autorole.memberRole === 'Member' ? 'selected' : ''}>Member</option>
+                            <option value="Newbie">Newbie</option>
+                        </select>
+                    </div>
+                    <div class="actions">
+                        <button class="save-btn" onclick="saveAutoroleSettings('${guild.id}')">
+                            <i class="fas fa-save"></i>
+                            حفظ الأدوار
+                        </button>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <div class="feature-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                        <h2 class="feature-title">الردود التلقائية</h2>
+                    </div>
+                    <p class="feature-description">
+                        إعداد ردود تلقائية لكلمات أو عبارات محددة.
+                    </p>
+                    <div class="form-row">
+                        <label>الحالة</label>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="autoresponses-enabled" ${guild.features.autoresponses.enabled ? 'checked' : ''} onchange="updateStatusIndicator(this)">
+                            <span class="status-indicator ${guild.features.autoresponses.enabled ? 'status-enabled' : 'status-disabled'}">
+                                <i class="fas fa-${guild.features.autoresponses.enabled ? 'check' : 'times'}"></i>
+                                ${guild.features.autoresponses.enabled ? 'مفعل' : 'معطل'}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-row-full">
+                        <label>الكلمات المحفزة</label>
+                        <textarea placeholder="أدخل كلمات أو عبارات محفزة...">${guild.features.autoresponses.responses.map(r => r.trigger).join('\n')}</textarea>
+                        <div class="help-text">كلمات أو عبارات ستؤدي إلى ردود تلقائية</div>
+                    </div>
+                    <div class="form-row-full">
+                        <label>الردود</label>
+                        <textarea placeholder="أدخل الردود...">${guild.features.autoresponses.responses.map(r => r.response).join('\n')}</textarea>
+                        <div class="help-text">الردود التي سيتم إرسالها عند اكتشاف المحفزات</div>
+                    </div>
+                    <div class="actions">
+                        <button class="save-btn" onclick="saveAutoresponsesSettings('${guild.id}')">
+                            <i class="fas fa-save"></i>
+                            حفظ الردود
+                        </button>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <div class="feature-icon">
+                            <i class="fas fa-hand-wave"></i>
+                        </div>
+                        <h2 class="feature-title">رسائل الترحيب</h2>
+                    </div>
+                    <p class="feature-description">
+                        إرسال رسائل ترحيب شخصية للأعضاء الجدد.
+                    </p>
+                    <div class="form-row">
+                        <label>الحالة</label>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="welcome-enabled" ${guild.features.welcome.enabled ? 'checked' : ''} onchange="updateStatusIndicator(this)">
+                            <span class="status-indicator ${guild.features.welcome.enabled ? 'status-enabled' : 'status-disabled'}">
+                                <i class="fas fa-${guild.features.welcome.enabled ? 'check' : 'times'}"></i>
+                                ${guild.features.welcome.enabled ? 'مفعل' : 'معطل'}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label>قناة الترحيب</label>
+                        <select>
+                            <option value="">اختر قناة</option>
+                            <option value="welcome" ${guild.features.welcome.channel === 'welcome' ? 'selected' : ''}>#welcome</option>
+                            <option value="general" ${guild.features.welcome.channel === 'general' ? 'selected' : ''}>#general</option>
+                        </select>
+                    </div>
+                    <div class="form-row-full">
+                        <label>رسالة الترحيب</label>
+                        <textarea placeholder="أدخل رسالة الترحيب...">${guild.features.welcome.message}</textarea>
+                        <div class="help-text">استخدم {user} لإشارة العضو و {server} لاسم الخادم</div>
+                    </div>
+                    <div class="actions">
+                        <button class="save-btn" onclick="saveWelcomeSettings('${guild.id}')">
+                            <i class="fas fa-save"></i>
+                            حفظ الترحيب
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Open guild configuration modal
+        function openGuildConfig(guildId) {
+            const guild = guilds.find(g => g.id === guildId);
+            if (!guild) return;
+            
+            currentGuild = guild;
+            document.getElementById('modal-title').textContent = `إعدادات ${guild.name}`;
+            document.getElementById('modal-body').innerHTML = generateGuildFeaturesHTML(guild);
+            document.getElementById('guild-modal').classList.add('active');
+        }
+        
+        // Close modal
+        function closeModal() {
+            document.getElementById('guild-modal').classList.remove('active');
+            currentGuild = null;
+        }
+        
+        // Update status indicator
+        function updateStatusIndicator(checkbox) {
+            const statusIndicator = checkbox.closest('.checkbox-group').querySelector('.status-indicator');
+            if (checkbox.checked) {
+                statusIndicator.className = 'status-indicator status-enabled';
+                statusIndicator.innerHTML = '<i class="fas fa-check"></i> مفعل';
+            } else {
+                statusIndicator.className = 'status-indicator status-disabled';
+                statusIndicator.innerHTML = '<i class="fas fa-times"></i> معطل';
+            }
+        }
+        
+        // Save functions (simulate API calls)
+        async function saveLogsSettings(guildId) {
+            showSuccess('تم حفظ إعدادات السجلات بنجاح');
+        }
+        
+        async function saveSecuritySettings(guildId) {
+            showSuccess('تم حفظ إعدادات الأمان بنجاح');
+        }
+        
+        async function saveAutoroleSettings(guildId) {
+            showSuccess('تم حفظ إعدادات الأدوار بنجاح');
+        }
+        
+        async function saveAutoresponsesSettings(guildId) {
+            showSuccess('تم حفظ إعدادات الردود بنجاح');
+        }
+        
+        async function saveWelcomeSettings(guildId) {
+            showSuccess('تم حفظ إعدادات الترحيب بنجاح');
+        }
+        
+        async function saveUserSettings() {
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            
+            if (!username || !email) {
+                showError('يرجى ملء جميع الحقول المطلوبة');
+                return;
+            }
+            
+            showSuccess('تم حفظ إعدادات المستخدم بنجاح');
+        }
+        
+        async function saveThemeSettings() {
+            const primaryColor = document.getElementById('primary-color').value;
+            const secondaryColor = document.getElementById('secondary-color').value;
+            
+            // Update CSS variables
+            document.documentElement.style.setProperty('--accent', primaryColor);
+            document.documentElement.style.setProperty('--accent2', secondaryColor);
+            
+            showSuccess('تم تطبيق الثيم بنجاح');
+        }
+        
+        // Setup event listeners
+        function setupEventListeners() {
+            // Close modal when clicking outside
+            document.getElementById('guild-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeModal();
+                }
+            });
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeModal();
+                }
+            });
+        }
+        
+        // Utility functions
+        function showSuccess(message) {
+            // Simple success notification (in real app, use a proper notification system)
+            alert(`✅ ${message}`);
+        }
+        
+        function showError(message) {
+            // Simple error notification (in real app, use a proper notification system)
+            alert(`❌ ${message}`);
+        }
+        
+        function logout() {
+            if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+                // In real app, clear session and redirect to login
+                alert('تم تسجيل الخروج بنجاح');
+                location.reload();
+            }
+        }
+        
+        // Auto-refresh data every 30 seconds
+        setInterval(() => {
+            if (document.getElementById('dashboard-panel').classList.contains('active')) {
+                loadGuilds();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>
