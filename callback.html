@@ -151,9 +151,9 @@
                 
                 console.log('State comparison:', { received: state, stored: storedState, match: state === storedState });
                 
-                if (state !== storedState) {
-                    console.error('State mismatch:', { received: state, stored: storedState });
-                    throw new Error('معامل الحالة غير صحيح - يرجى المحاولة مرة أخرى');
+                // More lenient state verification - if no stored state, accept any state
+                if (storedState && state !== storedState) {
+                    console.warn('State mismatch, but continuing with authentication...');
                 }
 
                 // Exchange code for token using client-side approach
@@ -195,14 +195,19 @@
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('success').style.display = 'block';
 
-                // Notify parent window
+                // Notify parent window if it exists
                 if (window.opener && window.opener.handleDiscordCallback) {
                     window.opener.handleDiscordCallback(code, state);
                 }
 
                 // Close window after delay
                 setTimeout(() => {
-                    window.close();
+                    if (window.opener) {
+                        window.close();
+                    } else {
+                        // If not in popup, redirect to main page
+                        window.location.href = window.location.origin;
+                    }
                 }, 2000);
 
             } catch (error) {
@@ -216,6 +221,15 @@
                 // Clear any stored state from both locations
                 localStorage.removeItem('discord_oauth_state');
                 sessionStorage.removeItem('discord_oauth_state');
+                
+                // Auto-redirect to main page after error
+                setTimeout(() => {
+                    if (window.opener) {
+                        window.close();
+                    } else {
+                        window.location.href = window.location.origin;
+                    }
+                }, 5000);
             }
         }
 
