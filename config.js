@@ -6,10 +6,10 @@ const DISCORD_CONFIG = {
     clientId: '1399499840475500574',
     
     // Client Secret من Discord Developer Portal (احتفظ به سراً)
-    clientSecret: 'AcUpnWHDgLrzbq9Une066YenwmsiiraQ',
+    clientSecret: 'P7RHo2yhr0Is2Yc5gPf78Odlgtkj0N7f',
     
     // Redirect URI - يجب أن يطابق الإعداد في Discord Developer Portal
-    redirectUri: window.location.origin + '/callback.html',
+    redirectUri: 'http://localhost:3000/callback.html',
     
     // الصلاحيات المطلوبة
     scopes: ['identify', 'guilds'],
