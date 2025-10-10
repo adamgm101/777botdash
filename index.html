@@ -1036,7 +1036,7 @@
         // Discord OAuth2 Configuration
         const DISCORD_CONFIG = {
             clientId: '1399499840475500574', // Client ID الخاص بك
-            redirectUri: 'http://localhost:3000/callback.html', // يجب أن يطابق ما هو مسجل في Discord Developer Portal
+            redirectUri: window.location.origin + '/callback.html', // سيعمل تلقائياً مع Netlify
             scopes: ['identify', 'guilds'],
             apiBase: 'https://discord.com/api/v10'
         };
@@ -1354,8 +1354,8 @@
                     throw new Error('Invalid state parameter');
                 }
                 
-                // Exchange code for token
-                const tokenResponse = await fetch('/api/discord/token', {
+                // Exchange code for token using Netlify Functions
+                const tokenResponse = await fetch('/.netlify/functions/discord-token', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1469,8 +1469,8 @@
                 // Fetch additional guild details and features
                 guilds = await Promise.all(discordGuilds.map(async (guild) => {
                     try {
-                        // Get guild features from your backend (if available)
-                        const featuresResponse = await fetch(`/api/guilds/${guild.id}/features`, {
+                        // Get guild features from Netlify Functions
+                        const featuresResponse = await fetch(`/.netlify/functions/guild-features?guildId=${guild.id}`, {
                             headers: {
                                 'Authorization': `Bearer ${accessToken}`
                             }
