@@ -293,6 +293,50 @@
             margin-bottom: 20px;
         }
         
+        .guild-stats {
+            display: flex;
+            gap: 15px;
+            margin: 10px 0;
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        
+        .stat-item i {
+            color: var(--accent);
+        }
+        
+        .permission-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 5px;
+        }
+        
+        .permission-badge.owner {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+        }
+        
+        .permission-badge.administrator {
+            background: linear-gradient(135deg, #FF6B6B, #FF5252);
+            color: #fff;
+        }
+        
+        .permission-badge.manage-server {
+            background: linear-gradient(135deg, #4ECDC4, #44A08D);
+            color: #fff;
+        }
+        
         .guild-icon {
             width: 60px;
             height: 60px;
@@ -906,7 +950,7 @@
                         <i class="fas fa-server"></i>
                     </div>
                     <div class="stat-number" id="total-servers">0</div>
-                    <div class="stat-label">إجمالي الخوادم</div>
+                    <div class="stat-label">الخوادم القابلة للإدارة</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon">
@@ -1208,7 +1252,7 @@
                                 <i class="fas fa-server"></i>
                             </div>
                             <div class="stat-number" id="total-servers">0</div>
-                            <div class="stat-label">إجمالي الخوادم</div>
+                            <div class="stat-label">الخوادم القابلة للإدارة</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-icon">
@@ -1528,8 +1572,21 @@
                 
                 const discordGuilds = await response.json();
                 
-                // Fetch additional guild details and features
-                guilds = await Promise.all(discordGuilds.map(async (guild) => {
+                // Filter guilds to show only those where user has admin/manage server permissions
+                const adminGuilds = discordGuilds.filter(guild => {
+                    // Check if user has admin permissions (0x8) or manage server permissions (0x20)
+                    const permissions = BigInt(guild.permissions);
+                    const hasAdmin = (permissions & 0x8n) !== 0n; // Administrator
+                    const hasManageServer = (permissions & 0x20n) !== 0n; // Manage Server
+                    const isOwner = guild.owner; // Server Owner
+                    
+                    return hasAdmin || hasManageServer || isOwner;
+                });
+                
+                console.log(`Found ${discordGuilds.length} total guilds, ${adminGuilds.length} with admin permissions`);
+                
+                // Fetch additional guild details and features for admin guilds only
+                guilds = await Promise.all(adminGuilds.map(async (guild) => {
                     try {
                         // Use default guild features (no backend needed)
                         const features = {
@@ -1549,22 +1606,57 @@
                             welcome: { enabled: false, channel: null, message: 'مرحباً {user} في {server}!' }
                         };
                         
+                        // Determine permission level
+                        const permissions = BigInt(guild.permissions);
+                        const hasAdmin = (permissions & 0x8n) !== 0n;
+                        const hasManageServer = (permissions & 0x20n) !== 0n;
+                        const isOwner = guild.owner;
+                        
+                        let permissionLevel = 'Member';
+                        if (isOwner) {
+                            permissionLevel = 'Owner';
+                        } else if (hasAdmin) {
+                            permissionLevel = 'Administrator';
+                        } else if (hasManageServer) {
+                            permissionLevel = 'Manage Server';
+                        }
+                        
                         return {
                             id: guild.id,
                             name: guild.name,
                             icon: guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png` : null,
                             memberCount: guild.approximate_member_count || 0,
                             permissions: guild.permissions,
+                            permissionLevel: permissionLevel,
+                            isOwner: isOwner,
                             features: features
                         };
                     } catch (error) {
                         console.error(`Error loading features for guild ${guild.name}:`, error);
+                        
+                        // Determine permission level for error case too
+                        const permissions = BigInt(guild.permissions);
+                        const hasAdmin = (permissions & 0x8n) !== 0n;
+                        const hasManageServer = (permissions & 0x20n) !== 0n;
+                        const isOwner = guild.owner;
+                        
+                        let permissionLevel = 'Member';
+                        if (isOwner) {
+                            permissionLevel = 'Owner';
+                        } else if (hasAdmin) {
+                            permissionLevel = 'Administrator';
+                        } else if (hasManageServer) {
+                            permissionLevel = 'Manage Server';
+                        }
+                        
                         return {
                             id: guild.id,
                             name: guild.name,
                             icon: guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png` : null,
                             memberCount: guild.approximate_member_count || 0,
                             permissions: guild.permissions,
+                            permissionLevel: permissionLevel,
+                            isOwner: isOwner,
                             features: {
                                 logs: { enabled: false, channel: null },
                                 security: { enabled: false, features: {} },
@@ -1599,7 +1691,23 @@
             const grid = document.getElementById('guilds-grid');
             
             if (guilds.length === 0) {
-                grid.innerHTML = '<div class="loading"><span>لا توجد خوادم متاحة</span></div>';
+                grid.innerHTML = `
+                    <div class="loading">
+                        <div style="text-align: center; padding: 40px;">
+                            <i class="fas fa-shield-alt" style="font-size: 48px; color: var(--accent); margin-bottom: 20px;"></i>
+                            <h3 style="margin-bottom: 10px; color: var(--text-primary);">لا توجد خوادم متاحة للإدارة</h3>
+                            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                                يجب أن تكون مالك الخادم أو لديك صلاحيات إدارة أو مدير لظهور الخادم هنا
+                            </p>
+                            <div style="background: var(--bg-secondary); padding: 15px; border-radius: 8px; border-left: 4px solid var(--accent);">
+                                <p style="margin: 0; font-size: 14px; color: var(--text-secondary);">
+                                    <i class="fas fa-info-circle" style="color: var(--accent); margin-left: 8px;"></i>
+                                    صلاحيات مطلوبة: مالك الخادم، مدير، أو إدارة الخادم
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
                 return;
             }
             
@@ -1607,11 +1715,21 @@
                 <div class="guild-card" onclick="openGuildConfig('${guild.id}')">
                     <div class="guild-header">
                         <div class="guild-icon">
-                            <i class="fas fa-hashtag"></i>
+                            ${guild.icon ? `<img src="${guild.icon}" alt="${guild.name}" style="width: 100%; height: 100%; border-radius: 16px; object-fit: cover;">` : `<i class="fas fa-hashtag"></i>`}
                         </div>
                         <div class="guild-info">
                             <h3>${guild.name}</h3>
                             <div class="guild-id">ID: ${guild.id}</div>
+                            <div class="permission-badge ${guild.isOwner ? 'owner' : guild.permissionLevel.toLowerCase().replace(' ', '-')}">
+                                <i class="fas fa-${guild.isOwner ? 'crown' : guild.permissionLevel === 'Administrator' ? 'shield-alt' : 'user-cog'}"></i>
+                                ${guild.isOwner ? 'مالك الخادم' : guild.permissionLevel === 'Administrator' ? 'مدير' : 'إدارة الخادم'}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="guild-stats">
+                        <div class="stat-item">
+                            <i class="fas fa-users"></i>
+                            <span>${guild.memberCount.toLocaleString()} عضو</span>
                         </div>
                     </div>
                     <div class="guild-actions">
@@ -1626,6 +1744,12 @@
         // Update stats
         function updateStats() {
             document.getElementById('total-servers').textContent = guilds.length;
+            
+            // Update the description to reflect admin-only servers
+            const statsDesc = document.querySelector('.stats-description');
+            if (statsDesc) {
+                statsDesc.textContent = 'الخوادم التي يمكنك إدارتها';
+            }
         }
         
         // Load guild features
