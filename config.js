@@ -3,10 +3,10 @@
 
 const DISCORD_CONFIG = {
     // Client ID من Discord Developer Portal
-    clientId: 'YOUR_DISCORD_CLIENT_ID',
+    clientId: '1399499840475500574',
     
     // Client Secret من Discord Developer Portal (احتفظ به سراً)
-    clientSecret: 'YOUR_DISCORD_CLIENT_SECRET',
+    clientSecret: 'AcUpnWHDgLrzbq9Une066YenwmsiiraQ',
     
     // Redirect URI - يجب أن يطابق الإعداد في Discord Developer Portal
     redirectUri: window.location.origin + '/callback.html',
