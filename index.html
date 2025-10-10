@@ -337,6 +337,60 @@
             color: #fff;
         }
         
+        .bot-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 5px;
+        }
+        
+        .bot-status.bot-present {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: #fff;
+        }
+        
+        .bot-status.bot-missing {
+            background: linear-gradient(135deg, #FF9800, #F57C00);
+            color: #fff;
+        }
+        
+        .guild-card.bot-missing {
+            border-color: #FF9800;
+            opacity: 0.8;
+        }
+        
+        .guild-card.bot-missing:hover {
+            border-color: #FF9800;
+            opacity: 1;
+        }
+        
+        .invite-btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .invite-btn:hover {
+            background: linear-gradient(135deg, #45a049, #4CAF50);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+        
         .guild-icon {
             width: 60px;
             height: 60px;
@@ -1588,6 +1642,20 @@
                 // Fetch additional guild details and features for admin guilds only
                 guilds = await Promise.all(adminGuilds.map(async (guild) => {
                     try {
+                        // Check if bot is in the guild
+                        let botInGuild = false;
+                        try {
+                            const botResponse = await fetch(`${DISCORD_CONFIG.apiBase}/guilds/${guild.id}`, {
+                                headers: {
+                                    'Authorization': `Bot ${DISCORD_CONFIG.clientSecret}`
+                                }
+                            });
+                            botInGuild = botResponse.ok;
+                        } catch (error) {
+                            console.log(`Bot not in guild ${guild.name} or error checking:`, error.message);
+                            botInGuild = false;
+                        }
+                        
                         // Use default guild features (no backend needed)
                         const features = {
                             logs: { enabled: false, channel: null },
@@ -1629,6 +1697,7 @@
                             permissions: guild.permissions,
                             permissionLevel: permissionLevel,
                             isOwner: isOwner,
+                            botInGuild: botInGuild,
                             features: features
                         };
                     } catch (error) {
@@ -1657,6 +1726,7 @@
                             permissions: guild.permissions,
                             permissionLevel: permissionLevel,
                             isOwner: isOwner,
+                            botInGuild: false, // Default to false on error
                             features: {
                                 logs: { enabled: false, channel: null },
                                 security: { enabled: false, features: {} },
@@ -1712,7 +1782,7 @@
             }
             
             grid.innerHTML = guilds.map(guild => `
-                <div class="guild-card" onclick="openGuildConfig('${guild.id}')">
+                <div class="guild-card ${!guild.botInGuild ? 'bot-missing' : ''}" onclick="${guild.botInGuild ? `openGuildConfig('${guild.id}')` : 'return false;'}">
                     <div class="guild-header">
                         <div class="guild-icon">
                             ${guild.icon ? `<img src="${guild.icon}" alt="${guild.name}" style="width: 100%; height: 100%; border-radius: 16px; object-fit: cover;">` : `<i class="fas fa-hashtag"></i>`}
@@ -1724,6 +1794,10 @@
                                 <i class="fas fa-${guild.isOwner ? 'crown' : guild.permissionLevel === 'Administrator' ? 'shield-alt' : 'user-cog'}"></i>
                                 ${guild.isOwner ? 'مالك الخادم' : guild.permissionLevel === 'Administrator' ? 'مدير' : 'إدارة الخادم'}
                             </div>
+                            <div class="bot-status ${guild.botInGuild ? 'bot-present' : 'bot-missing'}">
+                                <i class="fas fa-${guild.botInGuild ? 'check-circle' : 'exclamation-triangle'}"></i>
+                                ${guild.botInGuild ? 'البوت متصل' : 'البوت غير موجود'}
+                            </div>
                         </div>
                     </div>
                     <div class="guild-stats">
@@ -1733,9 +1807,14 @@
                         </div>
                     </div>
                     <div class="guild-actions">
-                        <button class="open-btn">
-                            <i class="fas fa-cog"></i> إدارة الخادم
-                        </button>
+                        ${guild.botInGuild ? 
+                            `<button class="open-btn">
+                                <i class="fas fa-cog"></i> إدارة الخادم
+                            </button>` :
+                            `<button class="invite-btn" onclick="inviteBotToGuild('${guild.id}')">
+                                <i class="fas fa-plus-circle"></i> إضافة البوت
+                            </button>`
+                        }
                     </div>
                 </div>
             `).join('');
@@ -1743,13 +1822,33 @@
         
         // Update stats
         function updateStats() {
-            document.getElementById('total-servers').textContent = guilds.length;
+            const totalServers = guilds.length;
+            const serversWithBot = guilds.filter(guild => guild.botInGuild).length;
+            const serversWithoutBot = totalServers - serversWithBot;
+            
+            document.getElementById('total-servers').textContent = totalServers;
             
             // Update the description to reflect admin-only servers
             const statsDesc = document.querySelector('.stats-description');
             if (statsDesc) {
-                statsDesc.textContent = 'الخوادم التي يمكنك إدارتها';
+                statsDesc.innerHTML = `
+                    الخوادم القابلة للإدارة<br>
+                    <small style="color: var(--text-secondary); font-size: 12px;">
+                        ${serversWithBot} مع البوت • ${serversWithoutBot} بدون البوت
+                    </small>
+                `;
             }
+        }
+        
+        // Invite bot to guild
+        function inviteBotToGuild(guildId) {
+            const inviteUrl = `https://discord.com/oauth2/authorize?client_id=1399499840475500574&permissions=8&integration_type=0&scope=applications.commands+bot&guild_id=${guildId}`;
+            
+            // Open invite URL in new tab
+            window.open(inviteUrl, '_blank');
+            
+            // Show notification
+            showNotification('تم فتح رابط إضافة البوت في تبويب جديد', 'success');
         }
         
         // Load guild features
