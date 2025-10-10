@@ -636,6 +636,170 @@
             background: rgba(255, 255, 255, 0.1);
         }
         
+        /* Login Screen Styles */
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 60vh;
+            padding: 40px 20px;
+        }
+        
+        .login-card {
+            background: rgba(15, 20, 27, 0.95);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 48px;
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .login-header {
+            margin-bottom: 32px;
+        }
+        
+        .login-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #5865F2, #7289DA);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: white;
+            margin: 0 auto 24px;
+            box-shadow: 0 10px 30px rgba(88, 101, 242, 0.3);
+        }
+        
+        .login-card h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 16px;
+        }
+        
+        .login-description {
+            font-size: 16px;
+            color: var(--subtext);
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+        
+        .discord-login-btn {
+            background: linear-gradient(135deg, #5865F2, #7289DA);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            margin-bottom: 32px;
+        }
+        
+        .discord-login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(88, 101, 242, 0.4);
+        }
+        
+        .discord-login-btn i {
+            font-size: 24px;
+        }
+        
+        .login-features {
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+        }
+        
+        .feature-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            color: var(--subtext);
+            font-size: 14px;
+        }
+        
+        .feature-item i {
+            font-size: 20px;
+            color: var(--accent);
+        }
+        
+        /* Error and Success Messages */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            z-index: 1001;
+            animation: slideIn 0.3s ease;
+            max-width: 400px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .notification.success {
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+        }
+        
+        .notification.error {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+        }
+        
+        .notification.warning {
+            background: linear-gradient(135deg, var(--warning), #d97706);
+            color: white;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        /* Loading States */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1002;
+            backdrop-filter: blur(5px);
+        }
+        
+        .loading-content {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            color: var(--text);
+        }
+        
         /* Responsive Design */
         @media (max-width: 768px) {
             .container {
@@ -676,6 +840,22 @@
             
             .page-title {
                 font-size: 28px;
+            }
+            
+            .login-card {
+                padding: 32px 24px;
+                margin: 20px;
+            }
+            
+            .login-features {
+                flex-direction: column;
+                gap: 16px;
+            }
+            
+            .notification {
+                right: 10px;
+                left: 10px;
+                max-width: none;
             }
         }
     </style>
@@ -851,6 +1031,15 @@
         let currentUser = null;
         let guilds = [];
         let currentGuild = null;
+        let accessToken = null;
+        
+        // Discord OAuth2 Configuration
+        const DISCORD_CONFIG = {
+            clientId: 'YOUR_DISCORD_CLIENT_ID', // Replace with your Discord application client ID
+            redirectUri: window.location.origin + '/callback.html', // You'll need to create this file
+            scopes: ['identify', 'guilds'],
+            apiBase: 'https://discord.com/api/v10'
+        };
         
         // Theme configuration
         const themeConfig = {
@@ -868,22 +1057,330 @@
         
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
-            initializeDashboard();
-            loadGuilds();
+            checkAuthStatus();
             setupEventListeners();
         });
         
-        // Initialize dashboard
-        function initializeDashboard() {
-            // Simulate user login (in real app, this would come from authentication)
-            currentUser = {
-                username: 'المستخدم',
-                discriminator: '1234',
-                avatar: null
-            };
+        // Check authentication status
+        async function checkAuthStatus() {
+            const token = localStorage.getItem('discord_access_token');
+            const userData = localStorage.getItem('discord_user_data');
             
-            updateUserDisplay();
+            if (token && userData) {
+                try {
+                    accessToken = token;
+                    currentUser = JSON.parse(userData);
+                    
+                    // Verify token is still valid
+                    const isValid = await verifyDiscordToken(token);
+                    if (isValid) {
+                        updateUserDisplay();
+                        loadGuilds();
+                        showAuthenticatedContent();
+                    } else {
+                        clearAuthData();
+                        showLoginScreen();
+                    }
+                } catch (error) {
+                    console.error('Error checking auth status:', error);
+                    clearAuthData();
+                    showLoginScreen();
+                }
+            } else {
+                showLoginScreen();
+            }
         }
+        
+        // Verify Discord token
+        async function verifyDiscordToken(token) {
+            try {
+                const response = await fetch(`${DISCORD_CONFIG.apiBase}/users/@me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                return response.ok;
+            } catch (error) {
+                console.error('Token verification failed:', error);
+                return false;
+            }
+        }
+        
+        // Show login screen
+        function showLoginScreen() {
+            const container = document.querySelector('.container');
+            container.innerHTML = `
+                <div class="page-header">
+                    <h1 class="page-title">777 Control Panel</h1>
+                    <p class="page-subtitle">يرجى تسجيل الدخول عبر Discord للوصول إلى لوحة التحكم</p>
+                </div>
+                
+                <div class="login-container">
+                    <div class="login-card">
+                        <div class="login-header">
+                            <div class="login-icon">
+                                <i class="fab fa-discord"></i>
+                            </div>
+                            <h2>تسجيل الدخول عبر Discord</h2>
+                        </div>
+                        <p class="login-description">
+                            سجل دخولك باستخدام حساب Discord الخاص بك للوصول إلى جميع الميزات
+                        </p>
+                        <button class="discord-login-btn" onclick="loginWithDiscord()">
+                            <i class="fab fa-discord"></i>
+                            تسجيل الدخول عبر Discord
+                        </button>
+                        <div class="login-features">
+                            <div class="feature-item">
+                                <i class="fas fa-shield-alt"></i>
+                                <span>مصادقة آمنة</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-server"></i>
+                                <span>إدارة الخوادم</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-cog"></i>
+                                <span>إعدادات متقدمة</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Show authenticated content
+        function showAuthenticatedContent() {
+            const container = document.querySelector('.container');
+            container.innerHTML = `
+                <div class="page-header">
+                    <h1 class="page-title">لوحة التحكم الرئيسية</h1>
+                    <p class="page-subtitle">إدارة متقدمة لخوادم الديسكورد مع ميزات شاملة</p>
+                </div>
+                
+                <!-- Navigation Tabs -->
+                <div class="nav-tabs">
+                    <button class="nav-tab active" onclick="showTab('dashboard')">
+                        <i class="fas fa-tachometer-alt"></i> لوحة التحكم
+                    </button>
+                    <button class="nav-tab" onclick="showTab('guilds')">
+                        <i class="fas fa-server"></i> الخوادم
+                    </button>
+                    <button class="nav-tab" onclick="showTab('settings')">
+                        <i class="fas fa-cog"></i> الإعدادات
+                    </button>
+                </div>
+                
+                <!-- Dashboard Tab -->
+                <div id="dashboard-panel" class="content-panel active">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-server"></i>
+                            </div>
+                            <div class="stat-number" id="total-servers">0</div>
+                            <div class="stat-label">إجمالي الخوادم</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-number">نشط</div>
+                            <div class="stat-label">الإدارة</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div class="stat-number">محمي</div>
+                            <div class="stat-label">الأمان</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-cog"></i>
+                            </div>
+                            <div class="stat-number">متقدم</div>
+                            <div class="stat-label">الميزات</div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid" id="guilds-grid">
+                        <div class="loading">
+                            <span>جاري تحميل الخوادم...</span>
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Guilds Tab -->
+                <div id="guilds-panel" class="content-panel">
+                    <div class="features-grid" id="guild-features">
+                        <div class="loading">
+                            <span>جاري تحميل الإعدادات...</span>
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Settings Tab -->
+                <div id="settings-panel" class="content-panel">
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <div class="feature-header">
+                                <div class="feature-icon">
+                                    <i class="fas fa-user-cog"></i>
+                                </div>
+                                <h2 class="feature-title">إعدادات المستخدم</h2>
+                            </div>
+                            <p class="feature-description">
+                                إدارة معلومات المستخدم وتفضيلات النظام.
+                            </p>
+                            <div class="form-row">
+                                <label>اسم المستخدم</label>
+                                <input type="text" id="username" placeholder="اسم المستخدم">
+                            </div>
+                            <div class="form-row">
+                                <label>البريد الإلكتروني</label>
+                                <input type="text" id="email" placeholder="البريد الإلكتروني">
+                            </div>
+                            <div class="actions">
+                                <button class="save-btn" onclick="saveUserSettings()">
+                                    <i class="fas fa-save"></i>
+                                    حفظ الإعدادات
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-header">
+                                <div class="feature-icon">
+                                    <i class="fas fa-palette"></i>
+                                </div>
+                                <h2 class="feature-title">المظهر والثيم</h2>
+                            </div>
+                            <p class="feature-description">
+                                تخصيص مظهر لوحة التحكم والألوان.
+                            </p>
+                            <div class="form-row">
+                                <label>اللون الأساسي</label>
+                                <input type="color" id="primary-color" value="#00e5ff">
+                            </div>
+                            <div class="form-row">
+                                <label>اللون الثانوي</label>
+                                <input type="color" id="secondary-color" value="#8a2be2">
+                            </div>
+                            <div class="actions">
+                                <button class="save-btn" onclick="saveThemeSettings()">
+                                    <i class="fas fa-palette"></i>
+                                    تطبيق الثيم
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Load data after showing content
+            loadGuilds();
+        }
+        
+        // Login with Discord
+        function loginWithDiscord() {
+            const state = generateRandomString(32);
+            localStorage.setItem('discord_oauth_state', state);
+            
+            const params = new URLSearchParams({
+                client_id: DISCORD_CONFIG.clientId,
+                redirect_uri: DISCORD_CONFIG.redirectUri,
+                response_type: 'code',
+                scope: DISCORD_CONFIG.scopes.join(' '),
+                state: state
+            });
+            
+            const discordAuthUrl = `https://discord.com/oauth2/authorize?${params.toString()}`;
+            
+            // Open Discord OAuth in popup window
+            const popup = window.open(
+                discordAuthUrl,
+                'discord-auth',
+                'width=500,height=700,scrollbars=yes,resizable=yes'
+            );
+            
+            // Listen for popup completion
+            const checkClosed = setInterval(() => {
+                if (popup.closed) {
+                    clearInterval(checkClosed);
+                    // Check if authentication was successful
+                    setTimeout(checkAuthStatus, 1000);
+                }
+            }, 1000);
+        }
+        
+        // Generate random string for state parameter
+        function generateRandomString(length) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+        
+        // Handle OAuth callback (this would be in callback.html)
+        window.handleDiscordCallback = async function(code, state) {
+            try {
+                // Verify state parameter
+                const storedState = localStorage.getItem('discord_oauth_state');
+                if (state !== storedState) {
+                    throw new Error('Invalid state parameter');
+                }
+                
+                // Exchange code for token
+                const tokenResponse = await fetch('/api/discord/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        code: code,
+                        redirect_uri: DISCORD_CONFIG.redirectUri
+                    })
+                });
+                
+                if (!tokenResponse.ok) {
+                    throw new Error('Failed to exchange code for token');
+                }
+                
+                const tokenData = await tokenResponse.json();
+                accessToken = tokenData.access_token;
+                
+                // Get user data
+                const userResponse = await fetch(`${DISCORD_CONFIG.apiBase}/users/@me`, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+                
+                if (!userResponse.ok) {
+                    throw new Error('Failed to fetch user data');
+                }
+                
+                currentUser = await userResponse.json();
+                
+                // Store in localStorage
+                localStorage.setItem('discord_access_token', accessToken);
+                localStorage.setItem('discord_user_data', JSON.stringify(currentUser));
+                localStorage.removeItem('discord_oauth_state');
+                
+                // Close popup and refresh
+                window.close();
+                
+            } catch (error) {
+                console.error('Discord OAuth error:', error);
+                showError('فشل في تسجيل الدخول: ' + error.message);
+                window.close();
+            }
+        };
         
         // Update user display
         function updateUserDisplay() {
@@ -917,48 +1414,100 @@
             }
         }
         
-        // Load guilds
+        // Load guilds from Discord API
         async function loadGuilds() {
+            if (!accessToken) {
+                showError('ليس لديك صلاحية للوصول إلى الخوادم');
+                return;
+            }
+            
             try {
-                // Simulate API call
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                showLoading('جاري تحميل الخوادم...');
                 
-                // Mock guilds data
-                guilds = [
-                    {
-                        id: '123456789',
-                        name: 'خادم التطوير',
-                        icon: null,
-                        memberCount: 150,
-                        features: {
-                            logs: { enabled: true, channel: 'logs' },
-                            security: { enabled: false, features: {} },
-                            autorole: { enabled: true, memberRole: 'Member' },
-                            autoresponses: { enabled: false, responses: [] },
-                            welcome: { enabled: true, channel: 'welcome', message: 'مرحباً {user} في {server}!' }
-                        }
-                    },
-                    {
-                        id: '987654321',
-                        name: 'خادم المجتمع',
-                        icon: null,
-                        memberCount: 300,
-                        features: {
-                            logs: { enabled: false, channel: null },
-                            security: { enabled: true, features: { spam: true, links: true } },
-                            autorole: { enabled: false, memberRole: null },
-                            autoresponses: { enabled: true, responses: [{ trigger: 'مرحبا', response: 'أهلاً وسهلاً!' }] },
-                            welcome: { enabled: false, channel: null, message: '' }
-                        }
+                // Fetch guilds from Discord API
+                const response = await fetch(`${DISCORD_CONFIG.apiBase}/users/@me/guilds`, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
                     }
-                ];
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        // Token expired
+                        clearAuthData();
+                        showLoginScreen();
+                        showError('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى');
+                        return;
+                    }
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const discordGuilds = await response.json();
+                
+                // Fetch additional guild details and features
+                guilds = await Promise.all(discordGuilds.map(async (guild) => {
+                    try {
+                        // Get guild features from your backend (if available)
+                        const featuresResponse = await fetch(`/api/guilds/${guild.id}/features`, {
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`
+                            }
+                        });
+                        
+                        let features = {
+                            logs: { enabled: false, channel: null },
+                            security: { enabled: false, features: {} },
+                            autorole: { enabled: false, memberRole: null },
+                            autoresponses: { enabled: false, responses: [] },
+                            welcome: { enabled: false, channel: null, message: 'مرحباً {user} في {server}!' }
+                        };
+                        
+                        if (featuresResponse.ok) {
+                            features = await featuresResponse.json();
+                        }
+                        
+                        return {
+                            id: guild.id,
+                            name: guild.name,
+                            icon: guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png` : null,
+                            memberCount: guild.approximate_member_count || 0,
+                            permissions: guild.permissions,
+                            features: features
+                        };
+                    } catch (error) {
+                        console.error(`Error loading features for guild ${guild.name}:`, error);
+                        return {
+                            id: guild.id,
+                            name: guild.name,
+                            icon: guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png` : null,
+                            memberCount: guild.approximate_member_count || 0,
+                            permissions: guild.permissions,
+                            features: {
+                                logs: { enabled: false, channel: null },
+                                security: { enabled: false, features: {} },
+                                autorole: { enabled: false, memberRole: null },
+                                autoresponses: { enabled: false, responses: [] },
+                                welcome: { enabled: false, channel: null, message: 'مرحباً {user} في {server}!' }
+                            }
+                        };
+                    }
+                }));
                 
                 updateGuildsDisplay();
                 updateStats();
+                hideLoading();
                 
             } catch (error) {
                 console.error('Error loading guilds:', error);
-                showError('فشل في تحميل الخوادم');
+                hideLoading();
+                
+                if (error.message.includes('401')) {
+                    clearAuthData();
+                    showLoginScreen();
+                    showError('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى');
+                } else {
+                    showError('فشل في تحميل الخوادم: ' + error.message);
+                }
             }
         }
         
@@ -1319,31 +1868,125 @@
             });
         }
         
+        // Clear authentication data
+        function clearAuthData() {
+            localStorage.removeItem('discord_access_token');
+            localStorage.removeItem('discord_user_data');
+            localStorage.removeItem('discord_oauth_state');
+            accessToken = null;
+            currentUser = null;
+        }
+        
+        // Show loading overlay
+        function showLoading(message = 'جاري التحميل...') {
+            const overlay = document.createElement('div');
+            overlay.className = 'loading-overlay';
+            overlay.id = 'loading-overlay';
+            overlay.innerHTML = `
+                <div class="loading-content">
+                    <div class="spinner" style="margin: 0 auto 16px;"></div>
+                    <p>${message}</p>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+        
+        // Hide loading overlay
+        function hideLoading() {
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+                overlay.remove();
+            }
+        }
+        
+        // Show notification
+        function showNotification(message, type = 'info', duration = 5000) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after duration
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, duration);
+            
+            // Click to dismiss
+            notification.addEventListener('click', () => {
+                notification.remove();
+            });
+        }
+        
         // Utility functions
         function showSuccess(message) {
-            // Simple success notification (in real app, use a proper notification system)
-            alert(`✅ ${message}`);
+            showNotification(message, 'success');
         }
         
         function showError(message) {
-            // Simple error notification (in real app, use a proper notification system)
-            alert(`❌ ${message}`);
+            showNotification(message, 'error', 8000);
+        }
+        
+        function showWarning(message) {
+            showNotification(message, 'warning');
         }
         
         function logout() {
             if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
-                // In real app, clear session and redirect to login
-                alert('تم تسجيل الخروج بنجاح');
-                location.reload();
+                try {
+                    // Clear local data
+                    clearAuthData();
+                    
+                    // Show success message
+                    showSuccess('تم تسجيل الخروج بنجاح');
+                    
+                    // Redirect to login screen
+                    setTimeout(() => {
+                        showLoginScreen();
+                    }, 1000);
+                    
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    showError('حدث خطأ أثناء تسجيل الخروج');
+                }
             }
         }
         
+        // Enhanced error handling
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.error);
+            showError('حدث خطأ غير متوقع. يرجى إعادة تحميل الصفحة.');
+        });
+        
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+            showError('حدث خطأ في الشبكة. يرجى المحاولة مرة أخرى.');
+        });
+        
         // Auto-refresh data every 30 seconds
         setInterval(() => {
-            if (document.getElementById('dashboard-panel').classList.contains('active')) {
+            if (document.getElementById('dashboard-panel') && 
+                document.getElementById('dashboard-panel').classList.contains('active') &&
+                accessToken && currentUser) {
                 loadGuilds();
             }
         }, 30000);
+        
+        // Check for token expiry every 5 minutes
+        setInterval(async () => {
+            if (accessToken) {
+                const isValid = await verifyDiscordToken(accessToken);
+                if (!isValid) {
+                    showWarning('انتهت صلاحية الجلسة. سيتم تسجيل الخروج تلقائياً.');
+                    setTimeout(() => {
+                        clearAuthData();
+                        showLoginScreen();
+                    }, 3000);
+                }
+            }
+        }, 300000); // 5 minutes
     </script>
 </body>
 </html>
