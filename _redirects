@@ -1,0 +1,6 @@
+# Netlify redirects for SPA
+/*    /index.html   200
+
+# API redirects to Netlify Functions
+/api/discord/token    /.netlify/functions/discord-token    200
+/api/guilds/*/features    /.netlify/functions/guild-features    200
