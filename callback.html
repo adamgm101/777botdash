@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Discord Authentication - معالجة المصادقة</title>
+    <title>Discord Authentication - Processing</title>
     <style>
         body {
-            font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             background: linear-gradient(135deg, #0a0d12 0%, #1a1f2e 100%);
             color: #e6f1ff;
             margin: 0;
@@ -68,53 +68,62 @@
             border-radius: 8px;
             border: 1px solid rgba(16, 185, 129, 0.3);
         }
+        
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 0 8px;
+            transition: all 0.2s ease;
+        }
+        
+        button:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+        
+        .close-btn {
+            background: #6b7280;
+        }
+        
+        .close-btn:hover {
+            background: #4b5563;
+        }
     </style>
 </head>
 <body>
     <div class="callback-container">
         <div id="loading" class="loading-state">
             <div class="spinner"></div>
-            <h2>جاري معالجة المصادقة...</h2>
-            <p>يرجى الانتظار بينما نعالج تسجيل الدخول الخاص بك</p>
+            <h2>Processing Authentication...</h2>
+            <p>Please wait while we process your login</p>
         </div>
         
         <div id="error" class="error-state" style="display: none;">
-            <h2>❌ فشل في المصادقة</h2>
-            <p id="error-message">حدث خطأ أثناء تسجيل الدخول</p>
+            <h2>❌ Authentication Failed</h2>
+            <p id="error-message">An error occurred during login</p>
             <div style="display: flex; gap: 12px; justify-content: center; margin-top: 16px;">
-                <button onclick="window.close()" style="
-                    background: #6b7280;
-                    color: white;
-                    border: none;
-                    padding: 12px 24px;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 14px;
-                ">إغلاق النافذة</button>
-                <button onclick="retryAuth()" style="
-                    background: #3b82f6;
-                    color: white;
-                    border: none;
-                    padding: 12px 24px;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 14px;
-                ">إعادة المحاولة</button>
+                <button class="close-btn" onclick="window.close()">Close Window</button>
+                <button onclick="retryAuth()">Retry</button>
             </div>
         </div>
         
         <div id="success" class="success-state" style="display: none;">
-            <h2>✅ تم تسجيل الدخول بنجاح</h2>
-            <p>سيتم إغلاق هذه النافذة تلقائياً</p>
+            <h2>✅ Login Successful</h2>
+            <p>This window will close automatically</p>
         </div>
     </div>
 
     <script>
         // Discord OAuth2 Configuration (should match main app)
         const DISCORD_CONFIG = {
-            clientId: '1399499840475500574', // Client ID الخاص بك
-            clientSecret: 'P7RHo2yhr0Is2Yc5gPf78Odlgtkj0N7f', // Client Secret الخاص بك
-            redirectUri: window.location.origin + '/callback.html', // سيعمل تلقائياً مع Netlify
+            clientId: '1399499840475500574',
+            clientSecret: 'P7RHo2yhr0Is2Yc5gPf78Odlgtkj0N7f',
+            redirectUri: window.location.origin + '/callback.html',
             scopes: ['identify', 'guilds'],
             apiBase: 'https://discord.com/api/v10'
         };
@@ -137,11 +146,11 @@
                 }
 
                 if (!code) {
-                    throw new Error('لم يتم الحصول على رمز المصادقة');
+                    throw new Error('Authorization code not received');
                 }
 
                 if (!state) {
-                    throw new Error('لم يتم الحصول على معامل الحالة');
+                    throw new Error('State parameter not received');
                 }
 
                 // Verify state parameter - check both localStorage and sessionStorage
@@ -167,7 +176,7 @@
                 const tokenData = await tokenResponse.json();
                 
                 if (!tokenData.access_token) {
-                    throw new Error('لم يتم الحصول على رمز الوصول');
+                    throw new Error('Access token not received');
                 }
 
                 // Get user data
@@ -178,7 +187,7 @@
                 });
 
                 if (!userResponse.ok) {
-                    throw new Error('فشل في الحصول على بيانات المستخدم');
+                    throw new Error('Failed to fetch user data');
                 }
 
                 const userData = await userResponse.json();
