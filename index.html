@@ -1237,7 +1237,7 @@
         // Open guild configuration
         function openGuildConfig(guildId) {
             showLoading('Loading server settings...');
-            fetch(`/api/guilds/${guildId}/features`).then(r => r.json()).then(data => {
+            fetch(`/api/guilds/${guildId}/features`).then(r => { if(!r.ok){ throw new Error(`HTTP ${r.status}`)} return r.json(); }).then(data => {
                 hideLoading();
                 const modal = document.createElement('div');
                 modal.className = 'modal-backdrop';
@@ -1249,6 +1249,8 @@
                             <button class="btn" id="tab-autorole">Autorole</button>
                             <button class="btn" id="tab-logs">Logs</button>
                             <button class="btn" id="tab-security">Security</button>
+                            <button class="btn" id="tab-welcome">Welcome</button>
+                            <button class="btn" id="tab-autoresp">Auto Responses</button>
                         </div>
                         <div id="panel-autorole" class="panel">
                             <div class="row"><label>Enable Autorole</label><input id="ar-enabled" type="checkbox" ${data.autorole?.enabled ? 'checked' : ''}></div>
@@ -1260,11 +1262,35 @@
                         </div>
                         <div id="panel-security" class="panel" style="display:none;">
                             <div class="row"><label>Enable Security</label><input id="sc-enabled" type="checkbox" ${data.security?.enabled ? 'checked' : ''}></div>
+                            <div class="row"><label>Timeout (ms)</label><input id="sc-timeout" type="number" min="0" step="1000" value="${Number(data.security?.timeoutMs || 0)}" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text);"></div>
                             <div class="row"><label>Block Links</label><input id="sc-links" type="checkbox" ${data.security?.features?.links ? 'checked' : ''}></div>
                             <div class="row"><label>Anti Spam</label><input id="sc-spam" type="checkbox" ${data.security?.features?.spam ? 'checked' : ''}></div>
                             <div class="row"><label>Anti Mentions</label><input id="sc-mentions" type="checkbox" ${data.security?.features?.mentions ? 'checked' : ''}></div>
                             <div class="row"><label>Anti Caps</label><input id="sc-caps" type="checkbox" ${data.security?.features?.caps ? 'checked' : ''}></div>
                             <div class="row"><label>Anti Emoji Spam</label><input id="sc-emoji" type="checkbox" ${data.security?.features?.emoji ? 'checked' : ''}></div>
+                            <div class="row" style="flex-direction:column; align-items:stretch;">
+                                <label>Blacklisted Words (one per line)</label>
+                                <textarea id="sc-blacklist" rows="5" style="width:100%; padding:8px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text);">${(data.security?.blacklistedWords || []).join('\n')}</textarea>
+                            </div>
+                        </div>
+                        <div id="panel-welcome" class="panel" style="display:none;">
+                            <div class="row"><label>Enable Welcome</label><input id="we-enabled" type="checkbox" ${data.welcome?.enabled ? 'checked' : ''}></div>
+                            <div class="row"><label>Channel ID</label><input id="we-channel" type="text" placeholder="Channel ID" value="${data.welcome?.channel || ''}" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text);"></div>
+                            <div class="row" style="flex-direction:column; align-items:stretch;">
+                                <label>Welcome Message</label>
+                                <textarea id="we-message" rows="4" style="width:100%; padding:8px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text);">${data.welcome?.message || 'Welcome {user} to {server}! 🎉'}</textarea>
+                            </div>
+                        </div>
+                        <div id="panel-autoresp" class="panel" style="display:none;">
+                            <div class="row"><label>Enable Auto Responses</label><input id="au-enabled" type="checkbox" ${data.autoresponses?.enabled ? 'checked' : ''}></div>
+                            <div class="row" style="flex-direction:column; align-items:stretch;">
+                                <label>Triggers (one per line)</label>
+                                <textarea id="au-triggers" rows="4" style="width:100%; padding:8px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text);">${(data.autoresponses?.responses || []).map(r=>r.trigger).join('\n')}</textarea>
+                            </div>
+                            <div class="row" style="flex-direction:column; align-items:stretch;">
+                                <label>Responses (one per line, same order)</label>
+                                <textarea id="au-responses" rows="4" style="width:100%; padding:8px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text);">${(data.autoresponses?.responses || []).map(r=>r.response).join('\n')}</textarea>
+                            </div>
                         </div>
                         <div class="actions">
                             <button class="btn" onclick="document.getElementById('guild-settings-modal').remove()">Close</button>
@@ -1276,10 +1302,14 @@
                     document.getElementById('panel-autorole').style.display = t==='autorole'? 'block':'none';
                     document.getElementById('panel-logs').style.display = t==='logs'? 'block':'none';
                     document.getElementById('panel-security').style.display = t==='security'? 'block':'none';
+                    document.getElementById('panel-welcome').style.display = t==='welcome'? 'block':'none';
+                    document.getElementById('panel-autoresp').style.display = t==='autoresp'? 'block':'none';
                 };
                 document.getElementById('tab-autorole').onclick = ()=>setTab('autorole');
                 document.getElementById('tab-logs').onclick = ()=>setTab('logs');
                 document.getElementById('tab-security').onclick = ()=>setTab('security');
+                document.getElementById('tab-welcome').onclick = ()=>setTab('welcome');
+                document.getElementById('tab-autoresp').onclick = ()=>setTab('autoresp');
             }).catch(e=>{ hideLoading(); showError('Failed to load settings'); });
         }
 
@@ -1287,12 +1317,36 @@
             const payload = {
                 autorole: { enabled: document.getElementById('ar-enabled').checked, memberRole: document.getElementById('ar-member').value || null },
                 logs: { enabled: document.getElementById('lg-enabled').checked, channel: document.getElementById('lg-channel').value || null },
-                security: { enabled: document.getElementById('sc-enabled').checked, features: { links: document.getElementById('sc-links').checked, spam: document.getElementById('sc-spam').checked, mentions: document.getElementById('sc-mentions').checked, caps: document.getElementById('sc-caps').checked, emoji: document.getElementById('sc-emoji').checked } }
+                security: { 
+                    enabled: document.getElementById('sc-enabled').checked,
+                    timeoutMs: Number(document.getElementById('sc-timeout').value || 0),
+                    features: { 
+                        links: document.getElementById('sc-links').checked, 
+                        spam: document.getElementById('sc-spam').checked, 
+                        mentions: document.getElementById('sc-mentions').checked, 
+                        caps: document.getElementById('sc-caps').checked, 
+                        emoji: document.getElementById('sc-emoji').checked 
+                    },
+                    blacklistedWords: (document.getElementById('sc-blacklist').value || '').split('\n').map(s=>s.trim()).filter(Boolean)
+                },
+                welcome: {
+                    enabled: document.getElementById('we-enabled').checked,
+                    channel: document.getElementById('we-channel').value || null,
+                    message: document.getElementById('we-message').value || 'Welcome {user} to {server}! 🎉'
+                },
+                autoresponses: (function(){
+                    const triggers = (document.getElementById('au-triggers').value || '').split('\n').map(s=>s.trim()).filter(Boolean);
+                    const responses = (document.getElementById('au-responses').value || '').split('\n').map(s=>s.trim()).filter(Boolean);
+                    const arr=[]; const n=Math.min(triggers.length, responses.length);
+                    for(let i=0;i<n;i++){ arr.push({ trigger: triggers[i], response: responses[i]}); }
+                    return { enabled: document.getElementById('au-enabled').checked, responses: arr };
+                })()
             };
             showLoading('Saving...');
             fetch(`/api/guilds/${guildId}/settings`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) })
-                .then(r=>r.json()).then(res=>{ hideLoading(); showSuccess('Settings saved'); document.getElementById('guild-settings-modal')?.remove(); })
-                .catch(()=>{ hideLoading(); showError('Failed to save'); });
+                .then(r=>{ if(!r.ok){ throw new Error(`HTTP ${r.status}`)} return r.json(); })
+                .then(res=>{ hideLoading(); if(!res.success){ throw new Error('Save failed') } showSuccess('Settings saved'); document.getElementById('guild-settings-modal')?.remove(); })
+                .catch((e)=>{ hideLoading(); showError('Failed to save'); });
         }
         
         // Invite bot to guild
