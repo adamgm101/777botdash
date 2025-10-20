@@ -754,18 +754,38 @@
             scopes: ['identify', 'guilds'],
             apiBase: 'https://discord.com/api/v10'
         };
-        // Backend base URL detection (ensures working from file:// or different origin)
-        const API_BASE = (function(){
+        // Backend base URL detection (configurable via localStorage)
+        let API_BASE = (function(){
             try {
+                const stored = localStorage.getItem('dashboard_api_base');
+                if (stored) return stored;
                 if (window.location.origin && window.location.origin.startsWith('http')) return window.location.origin;
             } catch(_) {}
             return 'http://localhost:3000';
         })();
+        window.getApiBase = function(){ return API_BASE; };
+        window.saveApiBase = function(url){
+            try {
+                if (!/^https?:\/\//i.test(url)) throw new Error('Invalid URL');
+                localStorage.setItem('dashboard_api_base', url);
+                API_BASE = url;
+                showSuccess('API base saved');
+            } catch(e){ showError('Invalid API URL'); }
+        };
+        window.testApiBase = function(url){
+            const target = url || API_BASE;
+            showLoading('Pinging backend...');
+            fetch(`${target}/api/health`).then(r=>{ hideLoading(); if(!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+                .then(()=> showSuccess('Backend reachable'))
+                .catch(()=> { hideLoading(); showError('Backend not reachable'); });
+        };
         
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
             checkAuthStatus();
             setupEventListeners();
+            // Ping backend to warn early if unreachable
+            setTimeout(()=>{ try { fetch(`${API_BASE}/api/health`).then(r=>{ if(!r.ok) throw 0;}).catch(()=> showWarning('Backend not reachable. Run: node server.js')); } catch(_){} }, 200);
         });
         
         // Check authentication status
@@ -1317,7 +1337,7 @@
                 document.getElementById('tab-security').onclick = ()=>setTab('security');
                 document.getElementById('tab-welcome').onclick = ()=>setTab('welcome');
                 document.getElementById('tab-autoresp').onclick = ()=>setTab('autoresp');
-            }).catch(e=>{ hideLoading(); showError('Failed to load settings'); });
+            }).catch(e=>{ hideLoading(); showError('Failed to load settings'); console.error('Settings load failed:', e); });
         }
 
         function saveGuildSettings(guildId){
@@ -1391,8 +1411,14 @@
             try{ const v = JSON.parse(localStorage.getItem('dashboard_theme_vars')||'{}'); applyTheme(v); }catch{}
         }
         function openThemeModal(){
-            const getVar = (n)=>getComputedStyle(document.documentElement).getPropertyValue(`--${n}`).trim();
-            const current = { bg:getVar('bg'), panel:getVar('panel'), border:getVar('border'), text:getVar('text'), subtext:getVar('subtext'), accent:getVar('accent'), accent2:getVar('accent2'), success:getVar('success'), warning:getVar('warning'), danger:getVar('danger') };
+            const getVar = (n)=>{
+                const v = getComputedStyle(document.documentElement).getPropertyValue(`--${n}`).trim();
+                return v || '';
+            };
+            const current = { 
+                bg:getVar('bg'), panel:getVar('panel'), border:getVar('border'), text:getVar('text'), subtext:getVar('subtext'),
+                accent:getVar('accent'), accent2:getVar('accent2'), success:getVar('success'), warning:getVar('warning'), danger:getVar('danger')
+            };
             const modal = document.createElement('div');
             modal.className = 'modal-backdrop';
             modal.id = 'theme-modal';
@@ -1407,9 +1433,12 @@
                             </div>
                         `).join('')}
                     </div>
+                    <div class="row" style="margin-top:12px;"><label>API Base</label><input id="api-base-input" type="text" placeholder="http://localhost:3000" value="${API_BASE}" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text);"></div>
                     <div class="actions">
                         <button class="btn" onclick="document.getElementById('theme-modal').remove()">Close</button>
                         <button class="btn" onclick="resetTheme()">Restart</button>
+                        <button class="btn" onclick="saveApiBase(document.getElementById('api-base-input').value)">Save API</button>
+                        <button class="btn" onclick="testApiBase(document.getElementById('api-base-input').value)">Test API</button>
                         <button class="btn primary" onclick="saveTheme()">Save</button>
                     </div>
                 </div>`;
@@ -1423,7 +1452,7 @@
             localStorage.removeItem('dashboard_theme_vars');
             applyTheme(defaults);
             showSuccess('Theme restored to defaults');
-            document.getElementById('theme-modal')?.remove();
+            const m=document.getElementById('theme-modal'); if(m) m.remove();
         }
         function saveTheme(){
             const keys=['bg','panel','border','text','subtext','accent','accent2','success','warning','danger'];
@@ -1432,7 +1461,7 @@
             localStorage.setItem('dashboard_theme_vars', JSON.stringify(vars));
             applyTheme(vars);
             showSuccess('Theme updated');
-            document.getElementById('theme-modal')?.remove();
+            const m=document.getElementById('theme-modal'); if(m) m.remove();
         }
         loadTheme();
 
