@@ -685,6 +685,7 @@
                 <i class="fas fa-user"></i>
             </div>
             <span id="user-display">User</span>
+            <a class="theme-btn" href="https://discord.com/oauth2/authorize?client_id=1399499840475500574&permissions=8&integration_type=0&scope=applications.commands+bot" target="_blank" rel="noopener">Add Bot</a>
             <button class="theme-btn" onclick="openThemeModal()">Theme</button>
             <button class="logout-btn" onclick="logout()">Logout</button>
         </div>
@@ -1108,144 +1109,31 @@
                     const hasAdmin = (permissions & 0x8n) !== 0n;
                     const hasManageServer = (permissions & 0x20n) !== 0n;
                     const isOwner = guild.owner;
-                    
                     return hasAdmin || hasManageServer || isOwner;
                 });
                 
                 console.log(`Found ${discordGuilds.length} total guilds, ${adminGuilds.length} with admin permissions`);
                 
-                guilds = await Promise.all(adminGuilds.map(async (guild) => {
-                    try {
-                        let botInGuild = false;
-                        let memberCount = guild.approximate_member_count || 0;
-                        
-                        try {
-                            const guildDetailsResponse = await fetch(`${DISCORD_CONFIG.apiBase}/guilds/${guild.id}?with_counts=true`, {
-                                headers: {
-                                    'Authorization': `Bearer ${accessToken}`
-                                }
-                            });
-                            
-                            if (guildDetailsResponse.ok) {
-                                const guildDetails = await guildDetailsResponse.json();
-                                memberCount = guildDetails.approximate_member_count || memberCount;
-                                
-                                const userPermissions = BigInt(guild.permissions);
-                                const hasManageServer = (userPermissions & 0x20n) !== 0n;
-                                const hasAdministrator = (userPermissions & 0x8n) !== 0n;
-                                const isOwner = guild.owner;
-                                
-                                if (isOwner || hasAdministrator || hasManageServer) {
-                                    try {
-                                        const membersResponse = await fetch(`${DISCORD_CONFIG.apiBase}/guilds/${guild.id}/members?limit=1`, {
-                                            headers: {
-                                                'Authorization': `Bearer ${accessToken}`
-                                            }
-                                        });
-                                        
-                                        const rolesResponse = await fetch(`${DISCORD_CONFIG.apiBase}/guilds/${guild.id}/roles`, {
-                                            headers: {
-                                                'Authorization': `Bearer ${accessToken}`
-                                            }
-                                        });
-                                        
-                                        if (membersResponse.ok || rolesResponse.ok) {
-                                            try {
-                                                const detailedMembersResponse = await fetch(`${DISCORD_CONFIG.apiBase}/guilds/${guild.id}/members?limit=5`, {
-                                                    headers: {
-                                                        'Authorization': `Bearer ${accessToken}`
-                                                    }
-                                                });
-                                                
-                                                if (detailedMembersResponse.ok) {
-                                                    botInGuild = true;
-                                                    console.log(`✅ Bot is in guild: ${guild.name}`);
-                                                } else if (rolesResponse.ok) {
-                                                    botInGuild = true;
-                                                    console.log(`✅ Bot is likely in guild: ${guild.name}`);
-                                                } else {
-                                                    botInGuild = false;
-                                                    console.log(`❌ Bot is not in guild: ${guild.name}`);
-                                                }
-                                            } catch (error) {
-                                                botInGuild = true;
-                                                console.log(`✅ Bot is likely in guild: ${guild.name}`);
-                                            }
-                                        } else {
-                                            botInGuild = false;
-                                            console.log(`❌ Bot is not in guild: ${guild.name}`);
-                                        }
-                                    } catch (error) {
-                                        botInGuild = false;
-                                        console.log(`❌ Cannot check bot presence in guild: ${guild.name} - ${error.message}`);
-                                    }
-                                } else {
-                                    botInGuild = false;
-                                    console.log(`❌ Cannot check bot in guild: ${guild.name} (User lacks admin permissions)`);
-                                }
-                            } else {
-                                botInGuild = false;
-                                console.log(`❌ Cannot access guild: ${guild.name}`);
-                            }
-                            
-                        } catch (error) {
-                            console.log(`Error checking bot presence in guild ${guild.name}:`, error.message);
-                            botInGuild = false;
-                        }
-                        
-                        const permissions = BigInt(guild.permissions);
-                        const hasAdmin = (permissions & 0x8n) !== 0n;
-                        const hasManageServer = (permissions & 0x20n) !== 0n;
-                        const isOwner = guild.owner;
-                        
-                        let permissionLevel = 'Member';
-                        if (isOwner) {
-                            permissionLevel = 'Owner';
-                        } else if (hasAdmin) {
-                            permissionLevel = 'Administrator';
-                        } else if (hasManageServer) {
-                            permissionLevel = 'Manage Server';
-                        }
-                        
-                        return {
-                            id: guild.id,
-                            name: guild.name,
-                            icon: guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png` : null,
-                            memberCount: memberCount,
-                            permissions: guild.permissions,
-                            permissionLevel: permissionLevel,
-                            isOwner: isOwner,
-                            botInGuild: botInGuild
-                        };
-                    } catch (error) {
-                        console.error(`Error loading features for guild ${guild.name}:`, error);
-                        
-                        const permissions = BigInt(guild.permissions);
-                        const hasAdmin = (permissions & 0x8n) !== 0n;
-                        const hasManageServer = (permissions & 0x20n) !== 0n;
-                        const isOwner = guild.owner;
-                        
-                        let permissionLevel = 'Member';
-                        if (isOwner) {
-                            permissionLevel = 'Owner';
-                        } else if (hasAdmin) {
-                            permissionLevel = 'Administrator';
-                        } else if (hasManageServer) {
-                            permissionLevel = 'Manage Server';
-                        }
-                        
-                        return {
-                            id: guild.id,
-                            name: guild.name,
-                            icon: guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png` : null,
-                            memberCount: guild.approximate_member_count || 0,
-                            permissions: guild.permissions,
-                            permissionLevel: permissionLevel,
-                            isOwner: isOwner,
-                            botInGuild: false
-                        };
-                    }
-                }));
+                guilds = adminGuilds.map(guild => {
+                    const permissions = BigInt(guild.permissions);
+                    const hasAdmin = (permissions & 0x8n) !== 0n;
+                    const hasManageServer = (permissions & 0x20n) !== 0n;
+                    const isOwner = guild.owner;
+                    let permissionLevel = 'Member';
+                    if (isOwner) permissionLevel = 'Owner';
+                    else if (hasAdmin) permissionLevel = 'Administrator';
+                    else if (hasManageServer) permissionLevel = 'Manage Server';
+                    return {
+                        id: guild.id,
+                        name: guild.name,
+                        icon: guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png` : null,
+                        memberCount: guild.approximate_member_count || 0,
+                        permissions: guild.permissions,
+                        permissionLevel,
+                        isOwner,
+                        botInGuild: true // Client-side cannot verify; assume present to avoid hiding servers
+                    };
+                });
                 
                 updateGuildsDisplay();
                 updateStats();
@@ -1460,10 +1348,21 @@
                     </div>
                     <div class="actions">
                         <button class="btn" onclick="document.getElementById('theme-modal').remove()">Close</button>
+                        <button class="btn" onclick="resetTheme()">Restart</button>
                         <button class="btn primary" onclick="saveTheme()">Save</button>
                     </div>
                 </div>`;
             document.body.appendChild(modal);
+        }
+        function resetTheme(){
+            const defaults={
+                bg:'#0a0d12', panel:'#0f141b', border:'#1b2433', text:'#e6f1ff', subtext:'#93a4bf',
+                accent:'#00e5ff', accent2:'#8a2be2', success:'#10b981', warning:'#f59e0b', danger:'#ef4444'
+            };
+            localStorage.removeItem('dashboard_theme_vars');
+            applyTheme(defaults);
+            showSuccess('Theme restored to defaults');
+            document.getElementById('theme-modal')?.remove();
         }
         function saveTheme(){
             const keys=['bg','panel','border','text','subtext','accent','accent2','success','warning','danger'];
