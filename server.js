@@ -24,6 +24,8 @@ const DATA_DIR = path.join(__dirname, 'data');
 const SECURITY_FILE = path.join(DATA_DIR, 'security.json');
 const LOGS_FILE = path.join(DATA_DIR, 'logs.json');
 const AUTOROLE_FILE = path.join(DATA_DIR, 'autorole.json');
+const WELCOME_FILE = path.join(DATA_DIR, 'welcome.json');
+const AUTORESPONSES_FILE = path.join(DATA_DIR, 'autoresponses.json');
 
 function ensureDataDir() {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -86,11 +88,15 @@ app.get('/api/guilds/:guildId/features', (req, res) => {
     const logsCfg = readJsonSafe(LOGS_FILE);
     const secCfg = readJsonSafe(SECURITY_FILE);
     const autoroleCfg = readJsonSafe(AUTOROLE_FILE);
+    const welcomeCfg = readJsonSafe(WELCOME_FILE);
+    const autoresCfg = readJsonSafe(AUTORESPONSES_FILE);
 
     const payload = {
-        logs: logsCfg[guildId] || { enabled: false, channel: null },
-        security: secCfg[guildId] || { enabled: false, features: { links: false, spam: false, mentions: false, caps: false, emoji: false } },
-        autorole: autoroleCfg[guildId] || { enabled: false, memberRole: null }
+        logs: logsCfg[guildId] || { enabled: false, channel: null, perCommand: {} },
+        security: secCfg[guildId] || { enabled: false, timeoutMs: 0, features: { links: false, spam: false, mentions: false, caps: false, emoji: false }, blacklistedWords: [] },
+        autorole: autoroleCfg[guildId] || { enabled: false, memberRole: null },
+        welcome: welcomeCfg[guildId] || { enabled: false, channel: null, message: 'Welcome {user} to {server}! 🎉' },
+        autoresponses: autoresCfg[guildId] || { enabled: false, responses: [] }
     };
     res.json(payload);
 });
@@ -106,6 +112,8 @@ app.post('/api/guilds/:guildId/settings', (req, res) => {
         const logsCfg = readJsonSafe(LOGS_FILE);
         const secCfg = readJsonSafe(SECURITY_FILE);
         const autoroleCfg = readJsonSafe(AUTOROLE_FILE);
+        const welcomeCfg = readJsonSafe(WELCOME_FILE);
+        const autoresCfg = readJsonSafe(AUTORESPONSES_FILE);
 
         if (settings.logs) {
             logsCfg[guildId] = {
@@ -118,13 +126,15 @@ app.post('/api/guilds/:guildId/settings', (req, res) => {
         if (settings.security) {
             secCfg[guildId] = {
                 enabled: Boolean(settings.security.enabled),
+                timeoutMs: Math.max(0, Number(settings.security.timeoutMs || 0)),
                 features: {
                     links: Boolean(settings.security.features?.links),
                     spam: Boolean(settings.security.features?.spam),
                     mentions: Boolean(settings.security.features?.mentions),
                     caps: Boolean(settings.security.features?.caps),
                     emoji: Boolean(settings.security.features?.emoji)
-                }
+                },
+                blacklistedWords: Array.isArray(settings.security.blacklistedWords) ? settings.security.blacklistedWords : []
             };
             writeJsonSafe(SECURITY_FILE, secCfg);
         }
@@ -135,6 +145,27 @@ app.post('/api/guilds/:guildId/settings', (req, res) => {
                 memberRole: settings.autorole.memberRole || null
             };
             writeJsonSafe(AUTOROLE_FILE, autoroleCfg);
+        }
+
+        if (settings.welcome) {
+            welcomeCfg[guildId] = {
+                enabled: Boolean(settings.welcome.enabled),
+                channel: settings.welcome.channel || null,
+                message: settings.welcome.message || 'Welcome {user} to {server}! 🎉'
+            };
+            writeJsonSafe(WELCOME_FILE, welcomeCfg);
+        }
+
+        if (settings.autoresponses) {
+            const responses = Array.isArray(settings.autoresponses.responses) ? settings.autoresponses.responses.map(r => ({
+                trigger: String(r.trigger || '').toLowerCase(),
+                response: String(r.response || '')
+            })).filter(r => r.trigger && r.response) : [];
+            autoresCfg[guildId] = {
+                enabled: Boolean(settings.autoresponses.enabled),
+                responses
+            };
+            writeJsonSafe(AUTORESPONSES_FILE, autoresCfg);
         }
 
         res.json({ success: true, message: 'Settings saved successfully' });
