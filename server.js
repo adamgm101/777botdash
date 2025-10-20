@@ -1,6 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
+const fs = require('fs');
 const cors = require('cors');
 
 const app = express();
@@ -17,6 +18,29 @@ const DISCORD_CONFIG = {
     clientSecret: 'P7RHo2yhr0Is2Yc5gPf78Odlgtkj0N7f', // Client Secret الخاص بك
     redirectUri: 'http://localhost:3000/callback.html'
 };
+
+// Data storage helpers
+const DATA_DIR = path.join(__dirname, 'data');
+const SECURITY_FILE = path.join(DATA_DIR, 'security.json');
+const LOGS_FILE = path.join(DATA_DIR, 'logs.json');
+const AUTOROLE_FILE = path.join(DATA_DIR, 'autorole.json');
+
+function ensureDataDir() {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+function readJsonSafe(filePath) {
+    try {
+        if (!fs.existsSync(filePath)) return {};
+        const raw = fs.readFileSync(filePath, 'utf8');
+        return raw ? JSON.parse(raw) : {};
+    } catch (_) {
+        return {};
+    }
+}
+function writeJsonSafe(filePath, data) {
+    ensureDataDir();
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+}
 
 // Discord OAuth2 token exchange endpoint
 app.post('/api/discord/token', async (req, res) => {
@@ -58,35 +82,66 @@ app.post('/api/discord/token', async (req, res) => {
 app.get('/api/guilds/:guildId/features', (req, res) => {
     const { guildId } = req.params;
     console.log(`Fetching features for guild: ${guildId}`);
-    
-    // إرجاع إعدادات افتراضية للخادم
-    res.json({
-        logs: { enabled: false, channel: null },
-        security: { 
-            enabled: false, 
-            features: {
-                links: false,
-                spam: false,
-                mentions: false,
-                caps: false,
-                emoji: false
-            }
-        },
-        autorole: { enabled: false, memberRole: null },
-        autoresponses: { enabled: false, responses: [] },
-        welcome: { enabled: false, channel: null, message: 'مرحباً {user} في {server}!' }
-    });
+
+    const logsCfg = readJsonSafe(LOGS_FILE);
+    const secCfg = readJsonSafe(SECURITY_FILE);
+    const autoroleCfg = readJsonSafe(AUTOROLE_FILE);
+
+    const payload = {
+        logs: logsCfg[guildId] || { enabled: false, channel: null },
+        security: secCfg[guildId] || { enabled: false, features: { links: false, spam: false, mentions: false, caps: false, emoji: false } },
+        autorole: autoroleCfg[guildId] || { enabled: false, memberRole: null }
+    };
+    res.json(payload);
 });
 
 // Save guild settings endpoint
 app.post('/api/guilds/:guildId/settings', (req, res) => {
     const { guildId } = req.params;
-    const settings = req.body;
-    
+    const settings = req.body || {};
+
     console.log(`Saving settings for guild ${guildId}:`, settings);
-    
-    // هنا يمكنك حفظ الإعدادات في قاعدة البيانات
-    res.json({ success: true, message: 'Settings saved successfully' });
+
+    try {
+        const logsCfg = readJsonSafe(LOGS_FILE);
+        const secCfg = readJsonSafe(SECURITY_FILE);
+        const autoroleCfg = readJsonSafe(AUTOROLE_FILE);
+
+        if (settings.logs) {
+            logsCfg[guildId] = {
+                enabled: Boolean(settings.logs.enabled),
+                channel: settings.logs.channel || null
+            };
+            writeJsonSafe(LOGS_FILE, logsCfg);
+        }
+
+        if (settings.security) {
+            secCfg[guildId] = {
+                enabled: Boolean(settings.security.enabled),
+                features: {
+                    links: Boolean(settings.security.features?.links),
+                    spam: Boolean(settings.security.features?.spam),
+                    mentions: Boolean(settings.security.features?.mentions),
+                    caps: Boolean(settings.security.features?.caps),
+                    emoji: Boolean(settings.security.features?.emoji)
+                }
+            };
+            writeJsonSafe(SECURITY_FILE, secCfg);
+        }
+
+        if (settings.autorole) {
+            autoroleCfg[guildId] = {
+                enabled: Boolean(settings.autorole.enabled),
+                memberRole: settings.autorole.memberRole || null
+            };
+            writeJsonSafe(AUTOROLE_FILE, autoroleCfg);
+        }
+
+        res.json({ success: true, message: 'Settings saved successfully' });
+    } catch (e) {
+        console.error('Error saving settings:', e);
+        res.status(500).json({ success: false, error: 'Failed to save settings' });
+    }
 });
 
 // Health check endpoint
