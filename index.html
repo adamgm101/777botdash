@@ -128,6 +128,24 @@
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
         }
+
+        .theme-btn {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            margin-right: 8px;
+        }
+        .theme-btn:hover { 
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 229, 255, 0.3);
+        }
         
         /* Container Styles */
         .container { 
@@ -347,21 +365,6 @@
         .bot-status.bot-present {
             background: linear-gradient(135deg, #4CAF50, #45a049);
             color: #fff;
-        }
-        
-        .bot-status.bot-missing {
-            background: linear-gradient(135deg, #FF9800, #F57C00);
-            color: #fff;
-        }
-        
-        .guild-card.bot-missing {
-            border-color: #FF9800;
-            opacity: 0.8;
-        }
-        
-        .guild-card.bot-missing:hover {
-            border-color: #FF9800;
-            opacity: 1;
         }
         
         .invite-btn {
@@ -637,6 +640,34 @@
                 max-width: none;
             }
         }
+
+        /* Theme Modal */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1100;
+        }
+        .modal {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            width: 95%;
+            max-width: 720px;
+            color: var(--text);
+        }
+        .modal h3 { margin-bottom: 12px; }
+        .modal .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .modal .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,0.02); }
+        .modal .row label { font-size: 14px; color: var(--subtext); }
+        .modal .row input[type="color"] { width: 48px; height: 32px; border: none; background: transparent; }
+        .modal .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+        .btn { padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; background: rgba(255,255,255,0.04); color: var(--text); }
+        .btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; }
     </style>
 </head>
 <body>
@@ -654,6 +685,7 @@
                 <i class="fas fa-user"></i>
             </div>
             <span id="user-display">User</span>
+            <button class="theme-btn" onclick="openThemeModal()">Theme</button>
             <button class="logout-btn" onclick="logout()">Logout</button>
         </div>
     </header>
@@ -669,42 +701,36 @@
             <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
             Bot is currently offline. Some features may not work properly.
         </div>
-
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-server"></i>
-                </div>
-                <div class="stat-number" id="total-servers">0</div>
+        
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-server"></i>
+                    </div>
+                    <div class="stat-number" id="total-servers">0</div>
                 <div class="stat-label">Servers with Bot</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-exclamation-circle"></i>
                 </div>
-                <div class="stat-number" id="servers-without-bot">0</div>
-                <div class="stat-label">Servers without Bot</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
                     <i class="fas fa-circle" id="bot-status-icon" style="color: #10b981;"></i>
-                </div>
+                    </div>
                 <div class="stat-number" id="bot-status-text">Online</div>
                 <div class="stat-label">Bot Status</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-shield-alt"></i>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                    <i class="fas fa-shield-alt"></i>
+                    </div>
                 <div class="stat-number">Secure</div>
                 <div class="stat-label">Protected</div>
+                </div>
             </div>
-        </div>
-        
-        <div class="grid" id="guilds-grid">
-            <div class="loading">
+            
+            <div class="grid" id="guilds-grid">
+                <div class="loading">
                 <span>Loading servers...</span>
-                <div class="spinner"></div>
+                    <div class="spinner"></div>
             </div>
         </div>
     </div>
@@ -869,42 +895,35 @@
                     <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
                     Bot is currently offline. Some features may not work properly.
                 </div>
-
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-server"></i>
-                        </div>
-                        <div class="stat-number" id="total-servers">0</div>
+                
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-server"></i>
+                            </div>
+                            <div class="stat-number" id="total-servers">0</div>
                         <div class="stat-label">Servers with Bot</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-exclamation-circle"></i>
                         </div>
-                        <div class="stat-number" id="servers-without-bot">0</div>
-                        <div class="stat-label">Servers without Bot</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">
+                        <div class="stat-card">
+                            <div class="stat-icon">
                             <i class="fas fa-circle" id="bot-status-icon" style="color: #10b981;"></i>
-                        </div>
+                            </div>
                         <div class="stat-number" id="bot-status-text">Online</div>
                         <div class="stat-label">Bot Status</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i class="fas fa-shield-alt"></i>
                         </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                            <i class="fas fa-shield-alt"></i>
+                            </div>
                         <div class="stat-number">Secure</div>
                         <div class="stat-label">Protected</div>
+                        </div>
                     </div>
-                </div>
-                
-                <div class="grid" id="guilds-grid">
-                    <div class="loading">
+                    
+                    <div class="grid" id="guilds-grid">
+                        <div class="loading">
                         <span>Loading servers...</span>
-                        <div class="spinner"></div>
+                            <div class="spinner"></div>
                     </div>
                 </div>
             `;
@@ -1246,18 +1265,19 @@
             }
         }
         
-        // Update guilds display
+        // Update guilds display (only show servers with bot)
         function updateGuildsDisplay() {
             const grid = document.getElementById('guilds-grid');
+            const visibleGuilds = guilds.filter(g => g.botInGuild);
             
-            if (guilds.length === 0) {
+            if (visibleGuilds.length === 0) {
                 grid.innerHTML = `
                     <div class="loading">
                         <div style="text-align: center; padding: 40px;">
                             <i class="fas fa-shield-alt" style="font-size: 48px; color: #6366f1; margin-bottom: 20px;"></i>
-                            <h3 style="margin-bottom: 10px; color: #1f2937;">No servers available for management</h3>
+                            <h3 style="margin-bottom: 10px; color: #1f2937;">No servers with the bot</h3>
                             <p style="color: #6b7280; margin-bottom: 20px;">
-                                You must be the server owner or have Administrator/Manage Server permissions for the server to appear here.
+                                Invite the bot to your server or ensure it is online.
                             </p>
                             <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; border-left: 4px solid #6366f1;">
                                 <p style="margin: 0; font-size: 14px; color: #6b7280;">
@@ -1271,8 +1291,8 @@
                 return;
             }
             
-            grid.innerHTML = guilds.map(guild => `
-                <div class="guild-card ${!guild.botInGuild ? 'bot-missing' : ''}" onclick="${guild.botInGuild ? `openGuildConfig('${guild.id}')` : 'return false;'}">
+            grid.innerHTML = visibleGuilds.map(guild => `
+                <div class="guild-card" onclick="openGuildConfig('${guild.id}')">
                     <div class="guild-header">
                         <div class="guild-icon">
                             ${guild.icon ? `<img src="${guild.icon}" alt="${guild.name}" style="width: 100%; height: 100%; border-radius: 16px; object-fit: cover;">` : `<i class="fas fa-hashtag"></i>`}
@@ -1284,9 +1304,9 @@
                                 <i class="fas fa-${guild.isOwner ? 'crown' : guild.permissionLevel === 'Administrator' ? 'shield-alt' : 'user-cog'}"></i>
                                 ${guild.isOwner ? 'Server Owner' : guild.permissionLevel === 'Administrator' ? 'Administrator' : 'Manage Server'}
                             </div>
-                            <div class="bot-status ${guild.botInGuild ? 'bot-present' : 'bot-missing'}">
-                                <i class="fas fa-${guild.botInGuild ? 'check-circle' : 'exclamation-triangle'}"></i>
-                                ${guild.botInGuild ? 'Bot Connected' : 'Bot Missing'}
+                            <div class="bot-status bot-present">
+                                <i class="fas fa-check-circle"></i>
+                                Bot Connected
                             </div>
                         </div>
                     </div>
@@ -1297,14 +1317,9 @@
                         </div>
                     </div>
                     <div class="guild-actions">
-                        ${guild.botInGuild ? 
-                            `<button class="open-btn">
-                                <i class="fas fa-cog"></i> Manage Server
-                            </button>` :
-                            `<button class="invite-btn" onclick="inviteBotToGuild('${guild.id}')">
-                                <i class="fas fa-plus-circle"></i> Add Bot
-                            </button>`
-                        }
+                        <button class="open-btn">
+                            <i class="fas fa-cog"></i> Manage Server
+                        </button>
                     </div>
                 </div>
             `).join('');
@@ -1313,10 +1328,7 @@
         // Update stats
         function updateStats() {
             const serversWithBot = guilds.filter(guild => guild.botInGuild).length;
-            const serversWithoutBot = guilds.filter(guild => !guild.botInGuild).length;
-            
             document.getElementById('total-servers').textContent = serversWithBot;
-            document.getElementById('servers-without-bot').textContent = serversWithoutBot;
             
             // Update bot status
             const botStatusIcon = document.getElementById('bot-status-icon');
@@ -1336,8 +1348,63 @@
         
         // Open guild configuration
         function openGuildConfig(guildId) {
-            // For now, just show a message since we don't have server-side guild management
-            showNotification('Guild management features coming soon!', 'info');
+            showLoading('Loading server settings...');
+            fetch(`/api/guilds/${guildId}/features`).then(r => r.json()).then(data => {
+                hideLoading();
+                const modal = document.createElement('div');
+                modal.className = 'modal-backdrop';
+                modal.id = 'guild-settings-modal';
+                modal.innerHTML = `
+                    <div class="modal">
+                        <h3><i class="fas fa-cog"></i> Server Settings</h3>
+                        <div class="tabs" style="display:flex; gap:8px; margin: 12px 0;">
+                            <button class="btn" id="tab-autorole">Autorole</button>
+                            <button class="btn" id="tab-logs">Logs</button>
+                            <button class="btn" id="tab-security">Security</button>
+                        </div>
+                        <div id="panel-autorole" class="panel">
+                            <div class="row"><label>Enable Autorole</label><input id="ar-enabled" type="checkbox" ${data.autorole?.enabled ? 'checked' : ''}></div>
+                            <div class="row"><label>Member Role ID</label><input id="ar-member" type="text" placeholder="Role ID" value="${data.autorole?.memberRole || ''}" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text);"></div>
+                        </div>
+                        <div id="panel-logs" class="panel" style="display:none;">
+                            <div class="row"><label>Enable Logs</label><input id="lg-enabled" type="checkbox" ${data.logs?.enabled ? 'checked' : ''}></div>
+                            <div class="row"><label>Channel ID</label><input id="lg-channel" type="text" placeholder="Channel ID" value="${data.logs?.channel || ''}" style="flex:1; padding:8px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text);"></div>
+                        </div>
+                        <div id="panel-security" class="panel" style="display:none;">
+                            <div class="row"><label>Enable Security</label><input id="sc-enabled" type="checkbox" ${data.security?.enabled ? 'checked' : ''}></div>
+                            <div class="row"><label>Block Links</label><input id="sc-links" type="checkbox" ${data.security?.features?.links ? 'checked' : ''}></div>
+                            <div class="row"><label>Anti Spam</label><input id="sc-spam" type="checkbox" ${data.security?.features?.spam ? 'checked' : ''}></div>
+                            <div class="row"><label>Anti Mentions</label><input id="sc-mentions" type="checkbox" ${data.security?.features?.mentions ? 'checked' : ''}></div>
+                            <div class="row"><label>Anti Caps</label><input id="sc-caps" type="checkbox" ${data.security?.features?.caps ? 'checked' : ''}></div>
+                            <div class="row"><label>Anti Emoji Spam</label><input id="sc-emoji" type="checkbox" ${data.security?.features?.emoji ? 'checked' : ''}></div>
+                        </div>
+                        <div class="actions">
+                            <button class="btn" onclick="document.getElementById('guild-settings-modal').remove()">Close</button>
+                            <button class="btn primary" onclick="saveGuildSettings('${guildId}')">Save</button>
+                        </div>
+                    </div>`;
+                document.body.appendChild(modal);
+                const setTab = (t)=>{
+                    document.getElementById('panel-autorole').style.display = t==='autorole'? 'block':'none';
+                    document.getElementById('panel-logs').style.display = t==='logs'? 'block':'none';
+                    document.getElementById('panel-security').style.display = t==='security'? 'block':'none';
+                };
+                document.getElementById('tab-autorole').onclick = ()=>setTab('autorole');
+                document.getElementById('tab-logs').onclick = ()=>setTab('logs');
+                document.getElementById('tab-security').onclick = ()=>setTab('security');
+            }).catch(e=>{ hideLoading(); showError('Failed to load settings'); });
+        }
+
+        function saveGuildSettings(guildId){
+            const payload = {
+                autorole: { enabled: document.getElementById('ar-enabled').checked, memberRole: document.getElementById('ar-member').value || null },
+                logs: { enabled: document.getElementById('lg-enabled').checked, channel: document.getElementById('lg-channel').value || null },
+                security: { enabled: document.getElementById('sc-enabled').checked, features: { links: document.getElementById('sc-links').checked, spam: document.getElementById('sc-spam').checked, mentions: document.getElementById('sc-mentions').checked, caps: document.getElementById('sc-caps').checked, emoji: document.getElementById('sc-emoji').checked } }
+            };
+            showLoading('Saving...');
+            fetch(`/api/guilds/${guildId}/settings`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) })
+                .then(r=>r.json()).then(res=>{ hideLoading(); showSuccess('Settings saved'); document.getElementById('guild-settings-modal')?.remove(); })
+                .catch(()=>{ hideLoading(); showError('Failed to save'); });
         }
         
         // Invite bot to guild
@@ -1363,6 +1430,52 @@
         
         // Authentication data is managed server-side
         
+        // THEME: apply, load, modal
+        function applyTheme(vars){
+            if(!vars) return;
+            const root = document.documentElement;
+            Object.entries(vars).forEach(([k,v])=>{
+                root.style.setProperty(`--${k}`, v);
+            });
+        }
+        function loadTheme(){
+            try{ const v = JSON.parse(localStorage.getItem('dashboard_theme_vars')||'{}'); applyTheme(v); }catch{}
+        }
+        function openThemeModal(){
+            const getVar = (n)=>getComputedStyle(document.documentElement).getPropertyValue(`--${n}`).trim();
+            const current = { bg:getVar('bg'), panel:getVar('panel'), border:getVar('border'), text:getVar('text'), subtext:getVar('subtext'), accent:getVar('accent'), accent2:getVar('accent2'), success:getVar('success'), warning:getVar('warning'), danger:getVar('danger') };
+            const modal = document.createElement('div');
+            modal.className = 'modal-backdrop';
+            modal.id = 'theme-modal';
+            modal.innerHTML = `
+                <div class="modal">
+                    <h3><i class="fas fa-palette"></i> Theme Colors</h3>
+                    <div class="grid-2">
+                        ${Object.entries(current).map(([k,v])=>`
+                            <div class="row">
+                                <label>${k}</label>
+                                <input type="color" id="th-${k}" value="${v || '#000000'}"/>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="actions">
+                        <button class="btn" onclick="document.getElementById('theme-modal').remove()">Close</button>
+                        <button class="btn primary" onclick="saveTheme()">Save</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+        }
+        function saveTheme(){
+            const keys=['bg','panel','border','text','subtext','accent','accent2','success','warning','danger'];
+            const vars={};
+            keys.forEach(k=>{ const el=document.getElementById('th-'+k); if(el) vars[k]=el.value; });
+            localStorage.setItem('dashboard_theme_vars', JSON.stringify(vars));
+            applyTheme(vars);
+            showSuccess('Theme updated');
+            document.getElementById('theme-modal')?.remove();
+        }
+        loadTheme();
+
         // Show loading overlay
         function showLoading(message = 'Loading...') {
             const overlay = document.createElement('div');
